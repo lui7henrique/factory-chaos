@@ -1,0 +1,20 @@
+---
+description: Direção do FactoryChaos. Leia antes de mudar gameplay.
+alwaysApply: true
+---
+
+# Direção
+
+`docs/direcao.md` é a fonte da direção. Leia antes de desenhar ou implementar gameplay.
+
+- Unity 6 + C#. Preserve movimento, carregar, esteira, máquina, entrega e o corte de munição/canhão. Incremente. Não recomece o projeto.
+- Fase 1 ainda não acabou: problemas de fábrica (superaquecimento, esteira travando, produto caindo, energia). Não abra multiplayer, waves, apostas, skill tree, skins nem geração procedural neste passo.
+- Upgrades só depois do caos single-player estar divertido. Cada upgrade melhora uma coisa e cria outro problema.
+- Um pedido por vez: ideia, implementação pequena, teste. Não antecipe a fase seguinte.
+- Visual low-poly e física legível. Arte polida espera o loop.
+- Código pode ser simples e descartável. Não crie arquitetura para dezenas de máquinas.
+
+```csharp
+// Ruim: implementar Netcode, upgrades e waves no mesmo pedido da esteira.
+// Bom: a esteira existente emperra por alguns segundos e avisa o jogador.
+```
