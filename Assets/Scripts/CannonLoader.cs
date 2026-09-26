@@ -9,6 +9,11 @@ public class CannonLoader : MonoBehaviour
 
     PlayerCarry playerCarry;
 
+    public void Bind(CannonController controller)
+    {
+        cannon = controller;
+    }
+
     void Awake()
     {
         if (cannon == null)

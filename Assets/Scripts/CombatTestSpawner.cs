@@ -38,14 +38,8 @@ public static class CombatTestSpawner
 
     static GameObject CreateAmmoTemplate(Transform parent, Material material)
     {
-        GameObject ammo = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        ammo.name = "AmmoTemplate";
+        GameObject ammo = new GameObject("AmmoTemplate");
         ammo.transform.SetParent(parent, false);
-        ammo.transform.localScale = new Vector3(0.16f, 0.16f, 0.42f);
-
-        MeshRenderer renderer = ammo.GetComponent<MeshRenderer>();
-        if (renderer != null)
-            renderer.sharedMaterial = material;
 
         Rigidbody body = ammo.AddComponent<Rigidbody>();
         body.mass = 0.4f;
@@ -53,6 +47,7 @@ public static class CombatTestSpawner
 
         Item item = ammo.AddComponent<Item>();
         item.SetKind(ItemKind.Ammo);
+        AmmoVisual.ApplyRuntime(ammo.transform);
         ammo.SetActive(false);
         return ammo;
     }
@@ -84,30 +79,17 @@ public static class CombatTestSpawner
         root.transform.SetParent(parent, false);
         root.transform.localPosition = new Vector3(6f, 0f, 3.5f);
 
-        CreatePart(root.transform, "Base", PrimitiveType.Cube, new Vector3(0f, 0.35f, 0f), Quaternion.identity, new Vector3(1.3f, 0.7f, 1.8f), bodyMaterial, true, false);
+        CannonVisual.Rebuild(root.transform, CannonVisual.RuntimePalette(), CannonVisual.BuildMeshes());
 
-        GameObject yaw = new GameObject("YawPivot");
-        yaw.transform.SetParent(root.transform, false);
-        yaw.transform.localPosition = new Vector3(0f, 0.78f, 0.1f);
+        CannonController controller = root.GetComponent<CannonController>();
+        if (controller == null)
+            controller = root.AddComponent<CannonController>();
 
-        GameObject pitch = new GameObject("PitchPivot");
-        pitch.transform.SetParent(yaw.transform, false);
-
-        CreatePart(pitch.transform, "Barrel", PrimitiveType.Cylinder, new Vector3(0f, 0f, 0.75f), Quaternion.Euler(90f, 0f, 0f), new Vector3(0.28f, 0.65f, 0.28f), bodyMaterial, true, false);
-
-        GameObject muzzle = new GameObject("Muzzle");
-        muzzle.transform.SetParent(pitch.transform, false);
-        muzzle.transform.localPosition = new Vector3(0f, 0f, 1.5f);
-
-        GameObject sight = new GameObject("Sight");
-        sight.transform.SetParent(pitch.transform, false);
-        sight.transform.localPosition = new Vector3(0f, 0.32f, -0.9f);
-
-        GameObject input = CreatePart(root.transform, "Input", PrimitiveType.Cube, new Vector3(0f, 1.05f, -0.75f), Quaternion.identity, new Vector3(0.85f, 0.45f, 0.7f), ammoMaterial, false, true);
-        CreatePart(root.transform, "Hopper", PrimitiveType.Cube, new Vector3(0f, 0.95f, -0.75f), Quaternion.identity, new Vector3(0.7f, 0.08f, 0.55f), ammoMaterial, true, false);
-
-        root.AddComponent<CannonController>().Configure(yaw.transform, pitch.transform, muzzle.transform, sight.transform, ammoMaterial);
-        input.AddComponent<CannonLoader>();
+        Transform yaw = root.transform.Find("YawPivot");
+        Transform pitch = yaw != null ? yaw.Find("PitchPivot") : null;
+        Transform muzzle = pitch != null ? pitch.Find("MuzzlePoint") : null;
+        Transform sight = pitch != null ? pitch.Find("Sight") : null;
+        controller.Configure(yaw, pitch, muzzle, sight, ammoMaterial);
     }
 
     static void CreateTarget(Transform parent, Material boardMaterial, Material baseMaterial)

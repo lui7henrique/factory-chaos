@@ -89,7 +89,13 @@ public static class FactoryLookMenu
 
     static void StyleProductPrefab()
     {
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Product.prefab");
+        // Keep product on the iron ingot visual; do not restore the old crystal look.
+        Mesh mesh = IronIngotMenu.GetOrUpdateMesh();
+        Material material = IronIngotMenu.GetOrUpdateMaterial();
+        if (mesh == null || material == null)
+            return;
+
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(IronIngotMenu.PrefabPath);
         if (prefab == null)
             return;
 
@@ -97,23 +103,7 @@ public static class FactoryLookMenu
         GameObject root = PrefabUtility.LoadPrefabContents(path);
         try
         {
-            Transform existing = root.transform.Find("Visuals");
-            if (existing != null)
-                Object.DestroyImmediate(existing.gameObject);
-
-            MeshRenderer body = root.GetComponent<MeshRenderer>();
-            if (body != null)
-                body.enabled = false;
-
-            Material bar = Load("Assets/Materials/Product.mat");
-            Material shine = Load("Assets/Materials/ProductShine.mat");
-            Transform visuals = CreateEmpty(root.transform, "Visuals");
-            CreateCube(visuals, "Ingot", new Vector3(0f, -0.18f, 0f), Quaternion.identity, new Vector3(1.05f, 0.3f, 0.52f), bar);
-            CreateCube(visuals, "IngotCap", new Vector3(0f, -0.02f, 0f), Quaternion.Euler(8f, 0f, 0f), new Vector3(0.78f, 0.12f, 0.36f), shine);
-            CreateCrystal(visuals, "Crystal", new Vector3(0f, 0.28f, 0f), Quaternion.Euler(0f, 16f, 0f), new Vector3(0.18f, 0.68f, 0.18f), shine);
-            CreateCrystal(visuals, "FacetL", new Vector3(-0.28f, 0.08f, 0.04f), Quaternion.Euler(18f, -28f, 12f), new Vector3(0.12f, 0.38f, 0.12f), shine);
-            CreateCrystal(visuals, "FacetR", new Vector3(0.26f, 0.06f, -0.06f), Quaternion.Euler(-14f, 34f, -8f), new Vector3(0.1f, 0.32f, 0.1f), shine);
-
+            IronIngotMenu.ApplyToRoot(root, mesh, material);
             PrefabUtility.SaveAsPrefabAsset(root, path);
         }
         finally

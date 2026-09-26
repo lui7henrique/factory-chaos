@@ -8,7 +8,6 @@ public static class CombatTestMenu
     const string AmmoMaterialPath = "Assets/Materials/Ammo.mat";
     const string CannonMaterialPath = "Assets/Materials/Cannon.mat";
     const string TargetMaterialPath = "Assets/Materials/Target.mat";
-    const string AmmoPrefabPath = "Assets/Prefabs/Ammo.prefab";
 
     [MenuItem("GameObject/Factory Chaos/Create Combat Test")]
     static void CreateCombatTest()
@@ -22,7 +21,7 @@ public static class CombatTestMenu
         Material ammoMaterial = GetOrCreateMaterial(AmmoMaterialPath, new Color(0.95f, 0.62f, 0.12f), 0.12f);
         Material cannonMaterial = GetOrCreateMaterial(CannonMaterialPath, new Color(0.22f, 0.24f, 0.27f), 0.08f);
         Material targetMaterial = GetOrCreateMaterial(TargetMaterialPath, new Color(0.75f, 0.18f, 0.16f), 0.06f);
-        GameObject ammoPrefab = GetOrCreateAmmoPrefab(ammoMaterial);
+        GameObject ammoPrefab = AmmoVisualMenu.EnsureAmmoPrefab();
 
         GameObject existing = GameObject.Find("CombatTest");
         if (existing != null)
@@ -48,41 +47,16 @@ public static class CombatTestMenu
 
     static GameObject CreateCannon(Transform parent, Material bodyMaterial, Material ammoMaterial)
     {
-        GameObject root = CreateEmpty(parent, "Cannon");
-        root.transform.localPosition = new Vector3(6f, 0f, 3.5f);
+        GameObject root = CannonVisualMenu.CreateVisualCannon(parent);
 
-        CreatePart(root.transform, "Base", PrimitiveType.Cube, new Vector3(0f, 0.35f, 0f), Quaternion.identity, new Vector3(1.3f, 0.7f, 1.8f), bodyMaterial, ColliderKind.Solid, true);
+        CannonController cannon = root.GetComponent<CannonController>();
+        if (cannon != null)
+        {
+            SerializedObject cannonObject = new SerializedObject(cannon);
+            cannonObject.FindProperty("projectileMaterial").objectReferenceValue = ammoMaterial;
+            cannonObject.ApplyModifiedPropertiesWithoutUndo();
+        }
 
-        Transform yaw = CreateEmpty(root.transform, "YawPivot").transform;
-        yaw.localPosition = new Vector3(0f, 0.78f, 0.1f);
-        Transform pitch = CreateEmpty(yaw, "PitchPivot").transform;
-
-        CreatePart(pitch, "Barrel", PrimitiveType.Cylinder, new Vector3(0f, 0f, 0.75f), Quaternion.Euler(90f, 0f, 0f), new Vector3(0.28f, 0.65f, 0.28f), bodyMaterial, ColliderKind.Solid, true);
-        Transform muzzle = CreateEmpty(pitch, "Muzzle").transform;
-        muzzle.localPosition = new Vector3(0f, 0f, 1.5f);
-        Transform sight = CreateEmpty(pitch, "Sight").transform;
-        sight.localPosition = new Vector3(0f, 0.32f, -0.9f);
-
-        GameObject input = CreatePart(root.transform, "Input", PrimitiveType.Cube, new Vector3(0f, 1.05f, -0.75f), Quaternion.identity, new Vector3(0.85f, 0.45f, 0.7f), ammoMaterial, ColliderKind.Trigger, false);
-        CreatePart(root.transform, "Hopper", PrimitiveType.Cube, new Vector3(0f, 0.95f, -0.75f), Quaternion.identity, new Vector3(0.7f, 0.08f, 0.55f), ammoMaterial, ColliderKind.None, true);
-
-        CannonController cannon = Undo.AddComponent<CannonController>(root);
-        SerializedObject cannonObject = new SerializedObject(cannon);
-        cannonObject.FindProperty("yawPivot").objectReferenceValue = yaw;
-        cannonObject.FindProperty("pitchPivot").objectReferenceValue = pitch;
-        cannonObject.FindProperty("muzzle").objectReferenceValue = muzzle;
-        cannonObject.FindProperty("sight").objectReferenceValue = sight;
-        cannonObject.FindProperty("capacity").intValue = 3;
-        cannonObject.FindProperty("damage").floatValue = 20f;
-        cannonObject.FindProperty("projectileSpeed").floatValue = 22f;
-        cannonObject.FindProperty("projectileLifetime").floatValue = 3f;
-        cannonObject.FindProperty("projectileMaterial").objectReferenceValue = ammoMaterial;
-        cannonObject.ApplyModifiedPropertiesWithoutUndo();
-
-        CannonLoader loader = Undo.AddComponent<CannonLoader>(input);
-        SerializedObject loaderObject = new SerializedObject(loader);
-        loaderObject.FindProperty("cannon").objectReferenceValue = cannon;
-        loaderObject.ApplyModifiedPropertiesWithoutUndo();
         return root;
     }
 
@@ -127,45 +101,6 @@ public static class CombatTestMenu
         material.SetFloat("_Metallic", 0f);
         AssetDatabase.CreateAsset(material, path);
         return material;
-    }
-
-    static GameObject GetOrCreateAmmoPrefab(Material material)
-    {
-        GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(AmmoPrefabPath);
-        if (existing != null)
-            return existing;
-
-        if (File.Exists(AmmoPrefabPath))
-        {
-            Debug.LogWarning("Could not load " + AmmoPrefabPath + ". It was left unchanged.");
-            return null;
-        }
-
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        try
-        {
-            temp.name = "Ammo";
-            temp.transform.localScale = new Vector3(0.16f, 0.16f, 0.42f);
-
-            MeshRenderer renderer = temp.GetComponent<MeshRenderer>();
-            if (renderer != null && material != null)
-                renderer.sharedMaterial = material;
-
-            Rigidbody body = temp.AddComponent<Rigidbody>();
-            body.mass = 0.4f;
-            body.collisionDetectionMode = CollisionDetectionMode.Continuous;
-
-            Item item = temp.AddComponent<Item>();
-            SerializedObject itemObject = new SerializedObject(item);
-            itemObject.FindProperty("kind").enumValueIndex = (int)ItemKind.Ammo;
-            itemObject.ApplyModifiedPropertiesWithoutUndo();
-
-            return PrefabUtility.SaveAsPrefabAsset(temp, AmmoPrefabPath);
-        }
-        finally
-        {
-            Object.DestroyImmediate(temp);
-        }
     }
 
     static GameObject CreateEmpty(Transform parent, string name)

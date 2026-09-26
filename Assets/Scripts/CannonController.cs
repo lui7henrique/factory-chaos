@@ -48,7 +48,8 @@ public class CannonController : MonoBehaviour
         pitchPivot = pitch;
         muzzle = muzzlePoint;
         sight = sightPoint;
-        projectileMaterial = shotMaterial;
+        if (shotMaterial != null)
+            projectileMaterial = shotMaterial;
     }
 
     public int Rounds => rounds;
@@ -192,6 +193,10 @@ public class CannonController : MonoBehaviour
         shot.AddComponent<Rigidbody>();
         Projectile projectile = shot.AddComponent<Projectile>();
         projectile.Launch(muzzle.forward * projectileSpeed, damage, projectileLifetime, cannonColliders);
+
+        CannonVisualFx visual = GetComponent<CannonVisualFx>();
+        if (visual != null)
+            visual.PlayRecoil();
     }
 
     bool CanOperate()
