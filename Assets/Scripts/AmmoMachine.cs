@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -18,6 +19,7 @@ public class AmmoMachine : MonoBehaviour
     [SerializeField] Transform outputPoint;
     [SerializeField] GameObject ammoPrefab;
     [SerializeField] float outputClearRadius = 0.34f;
+    [SerializeField] float outputImpulse = 0.65f;
 
     [Header("Status")]
     [SerializeField] Renderer statusRenderer;
@@ -32,12 +34,13 @@ public class AmmoMachine : MonoBehaviour
 
     PlayerCarry playerCarry;
     Material statusMaterial;
-    bool busy;
+    readonly Queue<GameObject> pendingProducts = new Queue<GameObject>();
+    Coroutine processRoutine;
     bool pressing;
 
     public bool CanTake(Item item)
     {
-        return !busy && item != null && item.enabled && item.Kind == ItemKind.Product;
+        return item != null && item.enabled && item.Kind == ItemKind.Product;
     }
 
     public bool TryDeposit(Item item)
@@ -45,7 +48,7 @@ public class AmmoMachine : MonoBehaviour
         if (!CanTake(item))
             return false;
 
-        Accept(item.gameObject);
+        Accept(item, item.GetComponentInParent<Rigidbody>());
         return true;
     }
 
@@ -72,6 +75,17 @@ public class AmmoMachine : MonoBehaviour
     void OnDisable()
     {
         pressing = false;
+        if (processRoutine != null)
+        {
+            StopCoroutine(processRoutine);
+            processRoutine = null;
+        }
+    }
+
+    void OnEnable()
+    {
+        if (pendingProducts.Count > 0 && processRoutine == null)
+            processRoutine = StartCoroutine(ProcessQueue());
     }
 
     void OnDestroy()
@@ -92,7 +106,7 @@ public class AmmoMachine : MonoBehaviour
 
     void TryConsume(Collider other)
     {
-        if (busy || other == null)
+        if (other == null)
             return;
 
         Item item = other.GetComponentInParent<Item>();
@@ -103,41 +117,116 @@ public class AmmoMachine : MonoBehaviour
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
-        Accept(body != null ? body.gameObject : item.gameObject);
+        Accept(item, body);
     }
 
-    void Accept(GameObject target)
+    void Accept(Item item, Rigidbody body)
     {
-        busy = true;
-        Destroy(target);
-        ShowProcessing();
-        StartCoroutine(Process());
+        item.enabled = false;
+        GameObject product = body != null ? body.gameObject : item.gameObject;
+        PrepareQueuedProduct(product, body);
+        pendingProducts.Enqueue(product);
+        if (processRoutine == null)
+            processRoutine = StartCoroutine(ProcessQueue());
     }
 
-    IEnumerator Process()
+    IEnumerator ProcessQueue()
     {
-        pressing = true;
-        yield return new WaitForSeconds(processDuration);
-        pressing = false;
-
-        if (ammoPrefab == null || outputPoint == null)
+        while (pendingProducts.Count > 0)
         {
-            Debug.LogWarning("AmmoMachine needs an ammo prefab and an output point.", this);
-            busy = false;
-            ShowAvailable();
-            yield break;
+            GameObject product = pendingProducts.Peek();
+            pressing = true;
+            ShowProcessing();
+            yield return new WaitForSeconds(processDuration);
+            pressing = false;
+
+            if (ammoPrefab == null || outputPoint == null)
+            {
+                Debug.LogWarning("AmmoMachine needs an ammo prefab and an output point.", this);
+                break;
+            }
+
+            while (OutputBlocked())
+            {
+                ShowBlocked();
+                yield return null;
+            }
+
+            pendingProducts.Dequeue();
+            if (product != null)
+                Destroy(product);
+
+            GameObject ammo = Instantiate(ammoPrefab, outputPoint.position, outputPoint.rotation);
+            ammo.SetActive(true);
+            EjectAmmo(ammo);
         }
 
-        while (OutputBlocked())
-        {
-            ShowBlocked();
-            yield return null;
-        }
-
-        GameObject ammo = Instantiate(ammoPrefab, outputPoint.position, outputPoint.rotation);
-        ammo.SetActive(true);
-        busy = false;
+        processRoutine = null;
         ShowAvailable();
+    }
+
+    void PrepareQueuedProduct(GameObject product, Rigidbody body)
+    {
+        if (product == null)
+            return;
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.isKinematic = true;
+        }
+
+        Collider[] colliders = product.GetComponentsInChildren<Collider>();
+        for (int i = 0; i < colliders.Length; i++)
+            colliders[i].enabled = false;
+
+        int slot = pendingProducts.Count % 3;
+        float offset = (slot - 1) * 0.28f;
+        product.transform.SetPositionAndRotation(
+            transform.position + transform.up * 0.34f + transform.forward * offset,
+            transform.rotation);
+    }
+
+    void EjectAmmo(GameObject ammo)
+    {
+        if (ammo == null)
+            return;
+
+        Rigidbody body = ammo.GetComponent<Rigidbody>();
+        if (body == null)
+            return;
+
+        Vector3 direction = outputPoint.right;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.001f)
+            return;
+
+        direction.Normalize();
+        float clearance = outputClearRadius + ProjectedExtent(ammo, direction) + 0.02f;
+        body.position = outputPoint.position + direction * clearance;
+
+        if (outputImpulse > 0f)
+            body.AddForce(direction * outputImpulse, ForceMode.Impulse);
+    }
+
+    float ProjectedExtent(GameObject target, Vector3 direction)
+    {
+        float largest = 0f;
+        Collider[] colliders = target.GetComponentsInChildren<Collider>();
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (!colliders[i].enabled)
+                continue;
+
+            Vector3 extents = colliders[i].bounds.extents;
+            float projected = Mathf.Abs(direction.x) * extents.x
+                + Mathf.Abs(direction.y) * extents.y
+                + Mathf.Abs(direction.z) * extents.z;
+            largest = Mathf.Max(largest, projected);
+        }
+
+        return largest;
     }
 
     bool OutputBlocked()
