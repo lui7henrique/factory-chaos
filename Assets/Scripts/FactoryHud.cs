@@ -27,7 +27,7 @@ public class FactoryHud : MonoBehaviour
     bool promptActive;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Ensure()
+    public static void Ensure()
     {
         if (FindAnyObjectByType<FactoryHud>() != null)
             return;

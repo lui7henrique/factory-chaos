@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 public static class PlaySceneVisuals
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Ensure()
+    public static void Ensure()
     {
         if (FactorySite.IsIndoor)
             return;

@@ -2,21 +2,19 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Gives the sample scene one ore vein and a pickaxe when they were not placed in edit mode.
+/// Puts the pickaxe and the inventory on whichever room is playing.
+/// The outdoor yard also gets a vein when the scene does not already have one.
 /// </summary>
 public static class MiningBootstrap
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Ensure()
+    public static void Ensure()
     {
-        if (FactorySite.IsIndoor)
-            return;
-
         Scene scene = SceneManager.GetActiveScene();
-        if (scene.name != "SampleScene")
+        if (scene.name != "SampleScene" && scene.name != "IndoorFactory")
             return;
 
-        if (Object.FindAnyObjectByType<OreVein>() == null)
+        if (!FactorySite.IsIndoor && Object.FindAnyObjectByType<OreVein>() == null)
             CreateVein();
 
         GameObject player = GameObject.Find("Player");

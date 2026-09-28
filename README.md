@@ -28,6 +28,7 @@ O combate de teste (máquina de munição, canhão e alvo) aparece ao dar Play, 
 | Mirar e atirar | mouse e clique esquerdo |
 | Sair do canhão | E ou Esc |
 | Soltar o cursor | Esc |
+| Trocar de sala | T |
 
 ## O que já existe
 
