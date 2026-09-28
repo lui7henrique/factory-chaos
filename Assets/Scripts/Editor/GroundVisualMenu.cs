@@ -159,7 +159,7 @@ public static class GroundVisualMenu
 
     static void AddAll<T>(List<GroundSurface.KeepOut> list, float pad, bool includeParent) where T : Component
     {
-        T[] found = Object.FindObjectsByType<T>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        T[] found = Object.FindObjectsByType<T>(FindObjectsInactive.Exclude);
         for (int i = 0; i < found.Length; i++)
         {
             Transform host = found[i].transform;

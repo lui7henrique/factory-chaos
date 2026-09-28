@@ -9,6 +9,9 @@ public static class MiningBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Ensure()
     {
+        if (FactorySite.IsIndoor)
+            return;
+
         Scene scene = SceneManager.GetActiveScene();
         if (scene.name != "SampleScene")
             return;

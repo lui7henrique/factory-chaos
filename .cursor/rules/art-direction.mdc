@@ -1,0 +1,20 @@
+---
+description: Direção de arte low-poly do FactoryChaos. Leia docs/ArtDirection.md antes de criar visuais.
+alwaysApply: true
+---
+
+# Arte
+
+`docs/ArtDirection.md` é a fonte da arte. Leia antes de modelar, pintar materiais, acender luzes ou gerar visuais por código.
+
+- Oficina industrial dentro de uma mina. Low-poly estilizado, sólido, visto pela câmera do jogador.
+- Paleta: casca `#35696B`, grafite `#343B43`, parede `#858078`, ferro `#A5ADB5`, marcação `#D5A63A`, cristal `#D87670`. Luzes de estado continuam verde e amarelo.
+- Silhueta primeiro. Chanfros largos. Sem parafusos. Sem textura fotoreal. Sem o mesmo número de polígonos em objetos de tamanhos diferentes.
+- Materiais reutilizáveis em `Assets/Art/Materials`. Não clone um material só para mudar 2% a cor.
+- A amostra viva é a fornalha e o `WorkshopBay`. Não refaça prensa, canhão nem entrega até essa amostra ser revisada.
+- `PlaySceneVisuals` e `WorkshopLook` não podem apagar o acabamento no Play. Se o visual já existe, não reconstrua.
+
+```csharp
+// Ruim: material novo amarelo em cada parafuso da fornalha.
+// Bom: ArtMaterials.Runtime().marking na borda da bandeja de entrada.
+```

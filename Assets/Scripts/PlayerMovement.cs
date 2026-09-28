@@ -20,6 +20,12 @@ public class PlayerMovement : MonoBehaviour
     [Header("Gravity")]
     [SerializeField] float gravity = -20f;
 
+    public void BindCamera(Transform camera)
+    {
+        if (camera != null)
+            cameraTransform = camera;
+    }
+
     CharacterController controller;
     float pitch;
     float verticalVelocity;

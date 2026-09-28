@@ -11,7 +11,7 @@ alwaysApply: true
 - Fase 1 ainda não acabou: problemas de fábrica (superaquecimento, esteira travando, produto caindo, energia). Não abra multiplayer, waves, apostas, skill tree, skins nem geração procedural neste passo.
 - Upgrades só depois do caos single-player estar divertido. Cada upgrade melhora uma coisa e cria outro problema.
 - Um pedido por vez: ideia, implementação pequena, teste. Não antecipe a fase seguinte.
-- Visual low-poly e física legível. Arte polida espera o loop.
+- Visual low-poly segundo `docs/ArtDirection.md`. A amostra é a fornalha e o WorkshopBay; não polir o resto antes da revisão.
 - Código pode ser simples e descartável. Não crie arquitetura para dezenas de máquinas.
 
 ```csharp

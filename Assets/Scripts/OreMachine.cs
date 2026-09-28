@@ -28,6 +28,14 @@ public class OreMachine : MonoBehaviour
     public float ProcessDuration => processDuration;
     public float ProcessSecondsLeft => busy ? Mathf.Max(0f, processEnd - Time.time) : 0f;
 
+    public void Configure(Transform output, GameObject product)
+    {
+        if (output != null)
+            outputPoint = output;
+        if (product != null)
+            productPrefab = product;
+    }
+
     public void AssignStatus(Renderer renderer)
     {
         statusRenderer = renderer;

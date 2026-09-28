@@ -4,16 +4,6 @@ using UnityEngine;
 
 public static class FurnaceVisualMenu
 {
-    const string SourceMaterialPath = "Assets/Materials/Machine.mat";
-    const string BodyPath = "Assets/Materials/FurnaceBody.mat";
-    const string StructurePath = "Assets/Materials/FurnaceStructure.mat";
-    const string TrayPath = "Assets/Materials/FurnaceTray.mat";
-    const string AccentPath = "Assets/Materials/FurnaceAccent.mat";
-    const string InteriorPath = "Assets/Materials/FurnaceInterior.mat";
-    const string FlamePath = "Assets/Materials/FurnaceFlame.mat";
-    const string LampPath = "Assets/Materials/FurnaceLamp.mat";
-    const string BorePath = "Assets/Materials/FurnaceBore.mat";
-
     const string RoofPath = "Assets/Meshes/FurnaceRoof.asset";
     const string ChimneyPath = "Assets/Meshes/FurnaceChimney.asset";
     const string CapPath = "Assets/Meshes/FurnaceCap.asset";
@@ -81,7 +71,7 @@ public static class FurnaceVisualMenu
         {
             FurnaceVisual.Created = go => Undo.RegisterCreatedObjectUndo(go, "Update Furnace Visual");
             FurnaceVisual.Destroyed = go => Undo.DestroyObjectImmediate(go);
-            FurnaceVisual.Rebuild(machine, LoadPalette(), LoadMeshes());
+            FurnaceVisual.Rebuild(machine, ArtMaterials.Furnace(ArtAssetsMenu.LoadOrCreate()), LoadMeshes());
         }
         finally
         {
@@ -132,21 +122,6 @@ public static class FurnaceVisualMenu
         return machine != null ? machine.transform : null;
     }
 
-    static FurnaceVisual.Palette LoadPalette()
-    {
-        return new FurnaceVisual.Palette
-        {
-            body = Material(BodyPath, "FurnaceBody", new Color(0.224f, 0.482f, 0.490f), 0.08f, false),
-            structure = Material(StructurePath, "FurnaceStructure", new Color(0.204f, 0.227f, 0.251f), 0.08f, false),
-            tray = Material(TrayPath, "FurnaceTray", new Color(0.522f, 0.553f, 0.588f), 0.1f, false),
-            accent = Material(AccentPath, "FurnaceAccent", new Color(0.957f, 0.745f, 0.196f), 0.1f, false),
-            interior = Material(InteriorPath, "FurnaceInterior", new Color(0.953f, 0.416f, 0.086f), 0.12f, true),
-            flame = Material(FlamePath, "FurnaceFlame", new Color(1f, 0.710f, 0.180f), 0.12f, true),
-            lamp = Material(LampPath, "FurnaceLamp", new Color(0.349f, 0.937f, 0.380f), 0.15f, true),
-            bore = Material(BorePath, "FurnaceBore", new Color(0.09f, 0.106f, 0.125f), 0.04f, false)
-        };
-    }
-
     static FurnaceVisual.MeshSet LoadMeshes()
     {
         FurnaceVisual.MeshSet fresh = FurnaceVisual.BuildMeshes();
@@ -184,59 +159,6 @@ public static class FurnaceVisualMenu
 
         AssetDatabase.CreateAsset(source, path);
         return source;
-    }
-
-    static Material Material(string path, string materialName, Color color, float smoothness, bool emissive)
-    {
-        Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (existing != null)
-        {
-            Paint(existing, color, smoothness, emissive);
-            EditorUtility.SetDirty(existing);
-            return existing;
-        }
-
-        if (File.Exists(path))
-        {
-            Debug.LogWarning("Could not load " + path + ".");
-            return null;
-        }
-
-        Material source = AssetDatabase.LoadAssetAtPath<Material>(SourceMaterialPath);
-        if (source == null)
-        {
-            Debug.LogWarning("Missing " + SourceMaterialPath + ".");
-            return null;
-        }
-
-        Material material = new Material(source) { name = materialName };
-        Paint(material, color, smoothness, emissive);
-        AssetDatabase.CreateAsset(material, path);
-        return material;
-    }
-
-    static void Paint(Material material, Color color, float smoothness, bool emissive)
-    {
-        material.SetColor("_BaseColor", color);
-        material.SetColor("_Color", color);
-        material.SetFloat("_Smoothness", smoothness);
-        material.SetFloat("_Metallic", 0f);
-        if (material.HasProperty("_BaseMap"))
-            material.SetTexture("_BaseMap", null);
-        if (material.HasProperty("_MainTex"))
-            material.SetTexture("_MainTex", null);
-
-        if (emissive)
-        {
-            material.EnableKeyword("_EMISSION");
-            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
-            material.SetColor("_EmissionColor", color * 0.65f);
-        }
-        else
-        {
-            material.DisableKeyword("_EMISSION");
-            material.SetColor("_EmissionColor", Color.black);
-        }
     }
 
     static void EnsureFolder(string path)

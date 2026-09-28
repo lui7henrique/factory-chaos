@@ -11,11 +11,15 @@ public static class PlaySceneVisuals
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Ensure()
     {
+        if (FactorySite.IsIndoor)
+            return;
+
         Scene scene = SceneManager.GetActiveScene();
         if (scene.name != "SampleScene")
             return;
 
         ApplyGround();
+        WorkshopLook.Apply();
         ApplyFurnace();
     }
 
@@ -37,11 +41,11 @@ public static class PlaySceneVisuals
         filter.sharedMesh = surface;
         renderer.sharedMaterials = new[]
         {
-            Lit(new Color(0.529f, 0.588f, 0.325f), false),
-            Lit(new Color(0.588f, 0.639f, 0.380f), false),
-            Lit(new Color(0.455f, 0.514f, 0.278f), false),
-            Lit(new Color(0.729f, 0.580f, 0.373f), false),
-            Lit(new Color(0.776f, 0.631f, 0.427f), false)
+            Lit(new Color(0.5f, 0.54f, 0.36f), false),
+            Lit(new Color(0.56f, 0.6f, 0.4f), false),
+            Lit(new Color(0.42f, 0.47f, 0.3f), false),
+            Lit(new Color(0.73f, 0.58f, 0.37f), false),
+            Lit(new Color(0.78f, 0.63f, 0.43f), false)
         };
 
         GroundSurface.KeepOut[] keepOuts = KeepOuts();
@@ -76,7 +80,7 @@ public static class PlaySceneVisuals
         if (machine == null || machine.transform.Find("Visual") != null)
             return;
 
-        FurnaceVisual.Rebuild(machine.transform, FurnaceVisual.RuntimePalette(), FurnaceVisual.BuildMeshes());
+        FurnaceVisual.Rebuild(machine.transform, ArtMaterials.Furnace(ArtMaterials.Runtime()), FurnaceVisual.BuildMeshes());
 
         OreMachine oreMachine = machine.GetComponentInChildren<OreMachine>(true);
         Renderer lens = FurnaceVisual.FindLens(machine.transform);
@@ -114,7 +118,7 @@ public static class PlaySceneVisuals
 
     static void Add<T>(List<GroundSurface.KeepOut> list, float pad, bool includeParent) where T : Component
     {
-        T[] found = Object.FindObjectsByType<T>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        T[] found = Object.FindObjectsByType<T>(FindObjectsInactive.Exclude);
         for (int i = 0; i < found.Length; i++)
         {
             Transform host = found[i].transform;

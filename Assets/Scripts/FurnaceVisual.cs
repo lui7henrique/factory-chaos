@@ -32,36 +32,7 @@ public static class FurnaceVisual
 
     public static Palette RuntimePalette()
     {
-        return new Palette
-        {
-            body = Make(new Color(0.224f, 0.482f, 0.490f), 0.08f, false),
-            structure = Make(new Color(0.204f, 0.227f, 0.251f), 0.08f, false),
-            tray = Make(new Color(0.522f, 0.553f, 0.588f), 0.1f, false),
-            accent = Make(new Color(0.957f, 0.745f, 0.196f), 0.1f, false),
-            interior = Make(new Color(0.953f, 0.416f, 0.086f), 0.12f, true),
-            flame = Make(new Color(1f, 0.710f, 0.180f), 0.12f, true),
-            lamp = Make(new Color(0.349f, 0.937f, 0.380f), 0.15f, true),
-            bore = Make(new Color(0.09f, 0.106f, 0.125f), 0.04f, false)
-        };
-    }
-
-    static Material Make(Color color, float smoothness, bool emissive)
-    {
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        if (shader == null)
-            shader = Shader.Find("Standard");
-
-        Material material = shader != null ? new Material(shader) : new Material(Shader.Find("Hidden/InternalErrorShader"));
-        material.SetColor("_BaseColor", color);
-        material.SetColor("_Color", color);
-        material.SetFloat("_Smoothness", smoothness);
-        material.SetFloat("_Metallic", 0f);
-        if (!emissive)
-            return material;
-
-        material.EnableKeyword("_EMISSION");
-        material.SetColor("_EmissionColor", color * 0.65f);
-        return material;
+        return ArtMaterials.Furnace(ArtMaterials.Runtime());
     }
 
     public static MeshSet BuildMeshes()
@@ -166,11 +137,13 @@ public static class FurnaceVisual
     static void BuildFrontTray(Transform visual, Transform solids, Palette palette)
     {
         Cube(visual, "InTray", new Vector3(0.94f, 0.72f, 0f), Quaternion.identity, new Vector3(0.62f, 0.08f, 0.82f), palette.tray);
-        Cube(visual, "InLipLeft", new Vector3(0.94f, 0.8f, -0.38f), Quaternion.identity, new Vector3(0.56f, 0.1f, 0.06f), palette.tray);
-        Cube(visual, "InLipRight", new Vector3(0.94f, 0.8f, 0.38f), Quaternion.identity, new Vector3(0.56f, 0.1f, 0.06f), palette.tray);
+        Cube(visual, "InLipLeft", new Vector3(0.94f, 0.8f, -0.38f), Quaternion.identity, new Vector3(0.56f, 0.1f, 0.06f), palette.structure);
+        Cube(visual, "InLipRight", new Vector3(0.94f, 0.8f, 0.38f), Quaternion.identity, new Vector3(0.56f, 0.1f, 0.06f), palette.structure);
+        Cube(visual, "InLipFront", new Vector3(1.22f, 0.82f, 0f), Quaternion.identity, new Vector3(0.08f, 0.14f, 0.82f), palette.accent);
         Solid(solids, "InTray", new Vector3(0.94f, 0.72f, 0f), new Vector3(0.62f, 0.08f, 0.82f));
         Solid(solids, "InLipLeft", new Vector3(0.94f, 0.8f, -0.38f), new Vector3(0.56f, 0.1f, 0.06f));
         Solid(solids, "InLipRight", new Vector3(0.94f, 0.8f, 0.38f), new Vector3(0.56f, 0.1f, 0.06f));
+        Solid(solids, "InLipFront", new Vector3(1.22f, 0.82f, 0f), new Vector3(0.08f, 0.14f, 0.82f));
     }
 
     static void BuildSideExit(Transform visual, Transform solids, Palette palette)
@@ -181,11 +154,13 @@ public static class FurnaceVisual
         Cube(visual, "OutGlow", new Vector3(0.05f, 0.78f, 0.5f), Quaternion.identity, new Vector3(0.28f, 0.2f, 0.04f), palette.interior);
 
         Cube(visual, "OutTray", new Vector3(0.08f, 0.7f, 1.08f), Quaternion.identity, new Vector3(0.82f, 0.08f, 0.62f), palette.tray);
-        Cube(visual, "OutLipBack", new Vector3(-0.3f, 0.78f, 1.08f), Quaternion.identity, new Vector3(0.06f, 0.1f, 0.56f), palette.tray);
-        Cube(visual, "OutLipFront", new Vector3(0.46f, 0.78f, 1.08f), Quaternion.identity, new Vector3(0.06f, 0.1f, 0.56f), palette.tray);
+        Cube(visual, "OutLipBack", new Vector3(-0.3f, 0.78f, 1.08f), Quaternion.identity, new Vector3(0.06f, 0.1f, 0.56f), palette.structure);
+        Cube(visual, "OutLipFront", new Vector3(0.46f, 0.78f, 1.08f), Quaternion.identity, new Vector3(0.06f, 0.1f, 0.56f), palette.structure);
+        Cube(visual, "OutLipFar", new Vector3(0.08f, 0.8f, 1.36f), Quaternion.identity, new Vector3(0.82f, 0.12f, 0.08f), palette.accent);
         Solid(solids, "OutTray", new Vector3(0.08f, 0.7f, 1.08f), new Vector3(0.82f, 0.08f, 0.62f));
         Solid(solids, "OutLipBack", new Vector3(-0.3f, 0.78f, 1.08f), new Vector3(0.06f, 0.1f, 0.56f));
         Solid(solids, "OutLipFront", new Vector3(0.46f, 0.78f, 1.08f), new Vector3(0.06f, 0.1f, 0.56f));
+        Solid(solids, "OutLipFar", new Vector3(0.08f, 0.8f, 1.36f), new Vector3(0.82f, 0.12f, 0.08f));
     }
 
     static Transform BuildFire(Transform machineRoot, Palette palette, MeshSet meshes)

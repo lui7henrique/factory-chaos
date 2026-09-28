@@ -13,6 +13,12 @@ public class OreSpawner : MonoBehaviour
 
     public GameObject OrePrefab => orePrefab;
 
+    public void AssignPrefab(GameObject prefab)
+    {
+        if (prefab != null)
+            orePrefab = prefab;
+    }
+
     const float GroundClearance = 0.15f;
 
     void Start()

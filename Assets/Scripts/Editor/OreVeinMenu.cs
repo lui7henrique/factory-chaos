@@ -28,7 +28,7 @@ public static class OreVeinMenu
         int group = Undo.GetCurrentGroup();
         Undo.SetCurrentGroupName("Create Ore Vein");
 
-        OreVein[] existing = Object.FindObjectsByType<OreVein>(FindObjectsSortMode.None);
+        OreVein[] existing = Object.FindObjectsByType<OreVein>();
         Vector3 position = new Vector3(-6f + existing.Length * 2.4f, 0f, -5f);
 
         GameObject root = new GameObject("OreVein");

@@ -15,6 +15,12 @@ public class PlayerMining : MonoBehaviour
     readonly RaycastHit[] hits = new RaycastHit[16];
 
     PlayerCarry carry;
+    public void BindCamera(Transform camera)
+    {
+        if (camera != null)
+            cameraTransform = camera;
+    }
+
     PickaxeVisual pickaxe;
     OreVein aimed;
     Vector3 aimPoint;

@@ -31,9 +31,9 @@ public class OreVeinVisual : MonoBehaviour
     {
         return new Palette
         {
-            rock = MakeMaterial(new Color(0.45f, 0.38f, 0.33f)),
-            dark = MakeMaterial(new Color(0.24f, 0.2f, 0.18f)),
-            crystal = MakeMaterial(new Color(0.93f, 0.36f, 0.42f))
+            rock = ArtMaterials.Runtime().rock,
+            dark = MakeMaterial(ArtPalette.RockDark),
+            crystal = ArtMaterials.Runtime().crystal
         };
     }
 

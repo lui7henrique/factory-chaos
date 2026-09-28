@@ -10,6 +10,7 @@ public class OreVein : MonoBehaviour
     [SerializeField] GameObject orePrefab;
     [SerializeField] float spawnRadius = 0.9f;
     [SerializeField] float spawnClearRadius = 0.22f;
+    [SerializeField] Vector3 spawnOffset;
 
     readonly Collider[] overlaps = new Collider[8];
 
@@ -28,6 +29,11 @@ public class OreVein : MonoBehaviour
     {
         if (prefab != null)
             orePrefab = prefab;
+    }
+
+    public void SetSpawnOffset(Vector3 offset)
+    {
+        spawnOffset = offset;
     }
 
     void Update()
@@ -80,7 +86,7 @@ public class OreVein : MonoBehaviour
             for (int i = 0; i < steps; i++)
             {
                 float angle = (i / (float)steps) * Mathf.PI * 2f + ring * 0.4f;
-                Vector3 position = transform.position + new Vector3(Mathf.Cos(angle) * radius, lift, Mathf.Sin(angle) * radius);
+                Vector3 position = transform.position + spawnOffset + new Vector3(Mathf.Cos(angle) * radius, lift, Mathf.Sin(angle) * radius);
                 if (!IsClear(position))
                     continue;
 

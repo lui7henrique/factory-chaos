@@ -16,6 +16,12 @@ public class PlayerCarry : MonoBehaviour
     [Header("Throw")]
     [SerializeField] float throwForce = 10f;
 
+    public void BindCamera(Transform camera)
+    {
+        if (camera != null)
+            cameraTransform = camera;
+    }
+
     const float HoldSurfaceGap = 0.25f;
 
     readonly RaycastHit[] hits = new RaycastHit[16];
