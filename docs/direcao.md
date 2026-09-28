@@ -8,9 +8,11 @@ O protótipo single-player já tem:
 
 - andar, olhar, pegar, soltar e arremessar
 - pilha de minério, máquina (1 minério vira 1 produto em 3s), esteira física e entrega por $10
-- um corte de combate: produto vira munição, canhão fixo e alvo com vida
+- a esteira emperra sozinha por 4 segundos, entre 18 e 32 segundos de funcionamento, e avisa o jogador
+- um corte de combate: produto vira munição e canhão fixo
+- onda 1: 50 segundos de preparação, um inimigo sai do túnel, três tiros do canhão derrubam, se ele chega na fábrica a rodada acaba
 
-Ainda não existem pedidos, timer, superaquecimento, esteira travando, energia, upgrades de run, waves, apostas nem multiplayer. Não apague o que já funciona para recomeçar do zero.
+Ainda não existem a onda 2, pedidos, timer de entrega, superaquecimento, produto caindo, energia, upgrades de run, apostas nem multiplayer. Não apague o que já funciona para recomeçar do zero.
 
 ## Ideias
 

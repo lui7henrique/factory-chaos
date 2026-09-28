@@ -10,6 +10,7 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] float moveSpeed = 5f;
+    [SerializeField] float sprintSpeed = 8f;
 
     [Header("Look")]
     [SerializeField] float lookSensitivity = 0.12f;
@@ -19,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Gravity")]
     [SerializeField] float gravity = -20f;
+    [SerializeField] float jumpSpeed = 4.5f;
 
     public void BindCamera(Transform camera)
     {
@@ -96,9 +98,13 @@ public class PlayerMovement : MonoBehaviour
         if (controller.isGrounded && verticalVelocity < 0f)
             verticalVelocity = -2f;
 
+        if (controller.isGrounded && JumpPressed())
+            verticalVelocity = jumpSpeed;
+
         verticalVelocity += gravity * Time.deltaTime;
 
-        Vector3 velocity = move * moveSpeed;
+        float speed = SprintHeld() ? sprintSpeed : moveSpeed;
+        Vector3 velocity = move * speed;
         velocity.y = verticalVelocity;
         controller.Move(velocity * Time.deltaTime);
     }
@@ -124,6 +130,19 @@ public class PlayerMovement : MonoBehaviour
         if (Keyboard.current.sKey.isPressed) y -= 1f;
         if (Keyboard.current.wKey.isPressed) y += 1f;
         return new Vector2(x, y);
+    }
+
+    static bool SprintHeld()
+    {
+        if (Keyboard.current == null)
+            return false;
+
+        return Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
+    }
+
+    static bool JumpPressed()
+    {
+        return Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
     }
 
     void ToggleCursor()

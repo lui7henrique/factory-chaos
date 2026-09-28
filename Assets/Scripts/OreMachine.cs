@@ -24,6 +24,20 @@ public class OreMachine : MonoBehaviour
     bool busy;
     float processEnd;
 
+    public bool CanTake(Item item)
+    {
+        return !busy && item != null && item.enabled && item.Kind == ItemKind.Ore;
+    }
+
+    public bool TryDeposit(Item item)
+    {
+        if (!CanTake(item))
+            return false;
+
+        Accept(item.gameObject);
+        return true;
+    }
+
     public bool IsProcessing => busy;
     public float ProcessDuration => processDuration;
     public float ProcessSecondsLeft => busy ? Mathf.Max(0f, processEnd - Time.time) : 0f;
@@ -91,9 +105,14 @@ public class OreMachine : MonoBehaviour
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
+        Accept(body != null ? body.gameObject : item.gameObject);
+    }
+
+    void Accept(GameObject target)
+    {
         busy = true;
         processEnd = Time.time + processDuration;
-        Destroy(body != null ? body.gameObject : item.gameObject);
+        Destroy(target);
         ShowProcessing();
         StartCoroutine(Process());
     }

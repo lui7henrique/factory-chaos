@@ -116,53 +116,19 @@ public class PickaxeVisual : MonoBehaviour
         Part(visual.transform, "Socket", meshes.socket, palette.iron, created);
         Part(visual.transform, "Head", meshes.head, palette.iron, created);
         Part(visual.transform, "Peg", meshes.peg, palette.wood, created);
-        BuildHand(pivot, palette.skin != null ? palette.skin : Make(new Color(0.82f, 0.58f, 0.42f), 0.08f, 0f), created);
+        RemoveHand(pivot);
     }
 
-    static void BuildHand(Transform pivot, Material skin, System.Action<GameObject> created)
+    static void RemoveHand(Transform pivot)
     {
         Transform existing = pivot.Find("Hand");
-        if (existing != null)
-        {
-            if (Application.isPlaying)
-                Destroy(existing.gameObject);
-            else
-                DestroyImmediate(existing.gameObject);
-        }
+        if (existing == null)
+            return;
 
-        GameObject hand = new GameObject("Hand");
-        Track(created, hand);
-        hand.transform.SetParent(pivot, false);
-
-        Box(hand.transform, "Palm", new Vector3(0.012f, 0f, -0.05f), Quaternion.identity, new Vector3(0.075f, 0.11f, 0.042f), skin, created);
-        for (int i = 0; i < 4; i++)
-        {
-            float y = -0.038f + i * 0.026f;
-            Box(hand.transform, "Knuckle", new Vector3(0.01f, y, -0.018f), Quaternion.identity, new Vector3(0.03f, 0.022f, 0.036f), skin, created);
-            Box(hand.transform, "Finger", new Vector3(-0.004f, y, 0.03f), Quaternion.Euler(68f, 0f, 0f), new Vector3(0.026f, 0.02f, 0.05f), skin, created);
-        }
-
-        Box(hand.transform, "Thumb", new Vector3(0.052f, -0.02f, -0.008f), Quaternion.Euler(24f, 78f, 36f), new Vector3(0.058f, 0.024f, 0.03f), skin, created);
-        Box(hand.transform, "Wrist", new Vector3(0.055f, -0.2f, -0.07f), Quaternion.Euler(16f, -18f, 10f), new Vector3(0.08f, 0.28f, 0.07f), skin, created);
-    }
-
-    static void Box(Transform parent, string name, Vector3 position, Quaternion rotation, Vector3 scale, Material material, System.Action<GameObject> created)
-    {
-        GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        box.name = name;
-        Track(created, box);
-        box.transform.SetParent(parent, false);
-        box.transform.localPosition = position;
-        box.transform.localRotation = rotation;
-        box.transform.localScale = scale;
-
-        Collider collider = box.GetComponent<Collider>();
-        if (collider != null)
-            DestroyImmediate(collider);
-
-        MeshRenderer renderer = box.GetComponent<MeshRenderer>();
-        if (renderer != null && material != null)
-            renderer.sharedMaterial = material;
+        if (Application.isPlaying)
+            Destroy(existing.gameObject);
+        else
+            DestroyImmediate(existing.gameObject);
     }
 
     static Quaternion Pose(float t)

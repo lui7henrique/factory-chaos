@@ -21,6 +21,7 @@ public static class PlaySceneVisuals
         ApplyGround();
         WorkshopLook.Apply();
         ApplyFurnace();
+        CaveBlockout.Ensure();
     }
 
     static void ApplyGround()
@@ -109,9 +110,9 @@ public static class PlaySceneVisuals
         Add<CannonController>(list, 0.6f, false);
         Add<AmmoMachine>(list, 0.6f, true);
         Add<TargetDummy>(list, 0.5f, false);
-        list.Add(new GroundSurface.KeepOut { center = new Vector2(6f, -1f), radius = 2.2f });
-        list.Add(new GroundSurface.KeepOut { center = new Vector2(6f, 3.5f), radius = 2.4f });
-        list.Add(new GroundSurface.KeepOut { center = new Vector2(6f, 9.2f), radius = 1.8f });
+        list.Add(new GroundSurface.KeepOut { center = new Vector2(4.6f, 3.4f), radius = 2.2f });
+        list.Add(new GroundSurface.KeepOut { center = new Vector2(1.6f, 6.2f), radius = 2.4f });
+        list.Add(new GroundSurface.KeepOut { center = new Vector2(1.6f, 13f), radius = 3.2f });
         list.Add(new GroundSurface.KeepOut { center = new Vector2(-6f, -5f), radius = 2.2f });
         return list.ToArray();
     }

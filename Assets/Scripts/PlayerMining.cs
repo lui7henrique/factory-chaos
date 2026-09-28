@@ -2,7 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Manual pickaxe mining. The vein keeps reserve and strike progress.
+/// Manual pickaxe. The swing plays whenever the hands are free.
+/// Only an ore vein takes a strike.
 /// </summary>
 [DefaultExecutionOrder(40)]
 public class PlayerMining : MonoBehaviour
@@ -15,13 +16,14 @@ public class PlayerMining : MonoBehaviour
     readonly RaycastHit[] hits = new RaycastHit[16];
 
     PlayerCarry carry;
+    PlayerLoadout loadout;
+    PickaxeVisual pickaxe;
+
     public void BindCamera(Transform camera)
     {
         if (camera != null)
             cameraTransform = camera;
     }
-
-    PickaxeVisual pickaxe;
     OreVein aimed;
     Vector3 aimPoint;
     Vector3 aimNormal;
@@ -43,6 +45,7 @@ public class PlayerMining : MonoBehaviour
     void Awake()
     {
         carry = GetComponent<PlayerCarry>();
+        loadout = GetComponent<PlayerLoadout>();
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
     }
@@ -57,8 +60,12 @@ public class PlayerMining : MonoBehaviour
 
     void Update()
     {
+        if (loadout == null)
+            loadout = GetComponent<PlayerLoadout>();
+
         bool handsFree = carry == null || !carry.IsHolding;
-        bool blocked = !inputEnabled || !handsFree || carry != null && !carry.InputEnabled;
+        bool tool = loadout != null && loadout.ToolSelected;
+        bool blocked = !inputEnabled || !handsFree || !tool || carry != null && !carry.InputEnabled;
         if (pickaxe != null)
             pickaxe.gameObject.SetActive(!blocked);
 
@@ -86,7 +93,7 @@ public class PlayerMining : MonoBehaviour
             return;
         }
 
-        if (!swinging && aimed != null && aimed.CanMine && Time.time >= nextSwingTime)
+        if (!swinging && Time.time >= nextSwingTime)
             BeginSwing();
 
         if (!swinging)
@@ -202,7 +209,10 @@ public class PlayerMining : MonoBehaviour
             pickaxe = existing.GetComponent<PickaxeVisual>();
             if (pickaxe == null)
                 pickaxe = existing.gameObject.AddComponent<PickaxeVisual>();
-            if (existing.Find("SwingPivot/Hand") == null)
+            Transform hand = existing.Find("SwingPivot/Hand");
+            if (hand != null)
+                Destroy(hand.gameObject);
+            if (existing.Find("SwingPivot/Visual") == null)
                 pickaxe.Rebuild(PickaxeVisual.RuntimePalette(), PickaxeMesh.Create(), null);
             pickaxe.UseHeldPose();
             pickaxe.SetCycle(0f);

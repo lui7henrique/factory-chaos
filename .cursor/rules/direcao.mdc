@@ -8,13 +8,13 @@ alwaysApply: true
 `docs/direcao.md` é a fonte da direção. Leia antes de desenhar ou implementar gameplay.
 
 - Unity 6 + C#. Preserve movimento, carregar, esteira, máquina, entrega e o corte de munição/canhão. Incremente. Não recomece o projeto.
-- Fase 1 ainda não acabou: problemas de fábrica (superaquecimento, esteira travando, produto caindo, energia). Não abra multiplayer, waves, apostas, skill tree, skins nem geração procedural neste passo.
+- Fase 1 ainda não acabou: problemas de fábrica (superaquecimento, produto caindo, energia). A esteira já emperra sozinha por alguns segundos. A onda 1 já tem um inimigo no túnel. Não abra a onda 2, multiplayer, apostas, skill tree, skins nem geração procedural neste passo.
 - Upgrades só depois do caos single-player estar divertido. Cada upgrade melhora uma coisa e cria outro problema.
 - Um pedido por vez: ideia, implementação pequena, teste. Não antecipe a fase seguinte.
 - Visual low-poly segundo `docs/ArtDirection.md`. A amostra é a fornalha e o WorkshopBay; não polir o resto antes da revisão.
 - Código pode ser simples e descartável. Não crie arquitetura para dezenas de máquinas.
 
 ```csharp
-// Ruim: implementar Netcode, upgrades e waves no mesmo pedido da esteira.
-// Bom: a esteira existente emperra por alguns segundos e avisa o jogador.
+// Ruim: implementar Netcode, upgrades e waves no mesmo pedido da máquina.
+// Bom: a máquina existente esquenta enquanto processa e a lâmpada fica vermelha.
 ```

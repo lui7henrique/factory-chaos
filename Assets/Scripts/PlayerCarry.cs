@@ -10,7 +10,7 @@ public class PlayerCarry : MonoBehaviour
 {
     [Header("Pickup")]
     [SerializeField] float pickupRange = 3f;
-    [SerializeField] float holdDistance = 2f;
+    [SerializeField] float holdDistance = 1.05f;
     [SerializeField] Transform cameraTransform;
 
     [Header("Throw")]
@@ -67,6 +67,9 @@ public class PlayerCarry : MonoBehaviour
         if (!inputEnabled)
             return;
 
+        if (GetComponent<PlayerLoadout>() != null)
+            return;
+
         bool interact = Keyboard.current != null
             && Keyboard.current.eKey.wasPressedThisFrame
             && ignoreInteractFrame != Time.frameCount;
@@ -101,7 +104,55 @@ public class PlayerCarry : MonoBehaviour
         if (nearest < holdDistance)
             distance = Mathf.Max(HoldSurfaceGap, nearest - HoldSurfaceGap);
 
-        heldBody.position = origin + direction * distance;
+        heldBody.position = origin + direction * distance
+            + cameraTransform.right * 0.16f
+            - cameraTransform.up * 0.2f;
+    }
+
+    public void UseHandHold()
+    {
+        holdDistance = 1.05f;
+    }
+
+    public void Hold(Rigidbody body)
+    {
+        if (body == null)
+            return;
+
+        body.gameObject.SetActive(true);
+        Pickup(body);
+    }
+
+    public void Pocket()
+    {
+        if (heldBody == null)
+            return;
+
+        GameObject pocketed = heldBody.gameObject;
+        heldBody = null;
+        heldColliders = null;
+        pocketed.SetActive(false);
+    }
+
+    public void ForgetHeld()
+    {
+        heldBody = null;
+        heldColliders = null;
+    }
+
+    public void DropHeld()
+    {
+        if (heldBody != null)
+            Release(Vector3.zero);
+    }
+
+    public void ThrowHeld()
+    {
+        if (heldBody == null || cameraTransform == null)
+            return;
+
+        Release(cameraTransform.forward * throwForce);
+        ThrewThisFrame = true;
     }
 
     void TryPickup()

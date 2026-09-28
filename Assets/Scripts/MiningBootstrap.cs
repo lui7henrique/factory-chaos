@@ -20,8 +20,13 @@ public static class MiningBootstrap
             CreateVein();
 
         GameObject player = GameObject.Find("Player");
-        if (player != null && player.GetComponent<PlayerMining>() == null)
+        if (player == null)
+            return;
+
+        if (player.GetComponent<PlayerMining>() == null)
             player.AddComponent<PlayerMining>();
+        if (player.GetComponent<PlayerLoadout>() == null)
+            player.AddComponent<PlayerLoadout>();
     }
 
     static void CreateVein()

@@ -35,6 +35,20 @@ public class AmmoMachine : MonoBehaviour
     bool busy;
     bool pressing;
 
+    public bool CanTake(Item item)
+    {
+        return !busy && item != null && item.enabled && item.Kind == ItemKind.Product;
+    }
+
+    public bool TryDeposit(Item item)
+    {
+        if (!CanTake(item))
+            return false;
+
+        Accept(item.gameObject);
+        return true;
+    }
+
     public bool IsPressing => pressing;
 
     public void SetStatusLamp(Renderer lamp)
@@ -89,8 +103,13 @@ public class AmmoMachine : MonoBehaviour
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
+        Accept(body != null ? body.gameObject : item.gameObject);
+    }
+
+    void Accept(GameObject target)
+    {
         busy = true;
-        Destroy(body != null ? body.gameObject : item.gameObject);
+        Destroy(target);
         ShowProcessing();
         StartCoroutine(Process());
     }

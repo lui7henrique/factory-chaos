@@ -16,7 +16,9 @@ public class FactoryHud : MonoBehaviour
     CannonController cannon;
     PlayerMining mining;
     PlayerCarry carry;
+    PlayerLoadout loadout;
     OreMachine furnace;
+    WaveDirector wave;
     Item lookedItem;
     bool lookingAtFurnace;
     GUIStyle titleStyle;
@@ -44,8 +46,12 @@ public class FactoryHud : MonoBehaviour
             mining = FindAnyObjectByType<PlayerMining>();
         if (carry == null)
             carry = FindAnyObjectByType<PlayerCarry>();
+        if (loadout == null)
+            loadout = FindAnyObjectByType<PlayerLoadout>();
         if (furnace == null)
             furnace = FindAnyObjectByType<OreMachine>();
+        if (wave == null)
+            wave = FindAnyObjectByType<WaveDirector>();
 
         Look();
     }
@@ -53,10 +59,73 @@ public class FactoryHud : MonoBehaviour
     void OnGUI()
     {
         EnsureStyles();
+        DrawWave();
         DrawMoney();
         promptActive = DrawPrompt();
         DrawFurnaceBar();
         DrawCrosshair();
+        DrawHotbar();
+        DrawEnemyHealth();
+    }
+
+    void DrawWave()
+    {
+        if (wave == null)
+            return;
+
+        string detail;
+        bool danger = false;
+        if (wave.Current == WaveDirector.Phase.Preparing)
+            detail = "Preparação  " + Mathf.CeilToInt(wave.SecondsLeft) + " s";
+        else if (wave.Current == WaveDirector.Phase.Incoming)
+        {
+            detail = "Saiu do túnel";
+            danger = true;
+        }
+        else if (wave.Current == WaveDirector.Phase.Cleared)
+            detail = "Onda limpa";
+        else
+        {
+            detail = "Chegou na fábrica";
+            danger = true;
+        }
+
+        bool bar = wave.Enemy != null && !wave.Enemy.IsDead && wave.Current == WaveDirector.Phase.Incoming;
+        Rect panel = new Rect(16f, 16f, 236f, bar ? 92f : 64f);
+        DrawPanel(panel);
+        Label(new Rect(panel.x + 16f, panel.y + 6f, 204f, 28f), "ONDA 1", titleStyle, Ink);
+        Label(new Rect(panel.x + 16f, panel.y + 34f, 204f, 22f), detail, bodyStyle, danger ? Danger : Muted);
+        if (!bar)
+            return;
+
+        DrawHealthChunks(new Rect(panel.x + 16f, panel.y + 64f, 204f, 14f), wave.Enemy.Health, wave.Enemy.MaxHealth);
+    }
+
+    void DrawEnemyHealth()
+    {
+        if (wave == null || wave.Enemy == null || wave.Enemy.IsDead)
+            return;
+
+        Camera view = Camera.main;
+        if (view == null)
+            return;
+
+        Vector3 screen = view.WorldToScreenPoint(wave.Enemy.transform.position + Vector3.up * 2.25f);
+        if (screen.z <= 0f)
+            return;
+
+        DrawHealthChunks(new Rect(screen.x - 72f, Screen.height - screen.y, 144f, 16f), wave.Enemy.Health, wave.Enemy.MaxHealth);
+    }
+
+    void DrawHealthChunks(Rect rect, float health, float maxHealth)
+    {
+        const int chunks = 3;
+        float fraction = maxHealth <= 0f ? 0f : Mathf.Clamp01(health / maxHealth);
+        int filled = Mathf.CeilToInt(fraction * chunks);
+        float gap = 4f;
+        float width = (rect.width - gap * (chunks - 1)) / chunks;
+        for (int i = 0; i < chunks; i++)
+            DrawBar(new Rect(rect.x + i * (width + gap), rect.y, width, rect.height), i < filled ? 1f : 0f, Danger);
     }
 
     void DrawMoney()
@@ -71,6 +140,12 @@ public class FactoryHud : MonoBehaviour
 
     bool DrawPrompt()
     {
+        if (loadout != null && !string.IsNullOrEmpty(loadout.DepositPrompt))
+        {
+            DrawCard(loadout.DepositPrompt, false, false);
+            return true;
+        }
+
         if (cannon != null && cannon.IsOperating)
         {
             string ammo = "Munição " + cannon.Rounds + "/" + cannon.Capacity + "  ·  E — Sair";
@@ -123,6 +198,74 @@ public class FactoryHud : MonoBehaviour
         }
 
         return false;
+    }
+
+    void DrawHotbar()
+    {
+        if (loadout == null)
+            return;
+
+        const float tool = 46f;
+        const float slot = 62f;
+        const float gap = 8f;
+        float width = tool + gap + slot * PlayerLoadout.SlotCount + gap * (PlayerLoadout.SlotCount - 1);
+        float x = (Screen.width - width) * 0.5f;
+        float y = Screen.height - 86f;
+
+        DrawSlot(new Rect(x, y + (slot - tool) * 0.5f, tool, tool), "1", true, loadout.ToolSelected, null);
+        for (int i = 0; i < PlayerLoadout.SlotCount; i++)
+        {
+            float slotX = x + tool + gap + i * (slot + gap);
+            Item item = loadout.SlotItem(i);
+            DrawSlot(new Rect(slotX, y, slot, slot), (i + 2).ToString(), false, loadout.SelectedIndex == i, item);
+        }
+    }
+
+    void DrawSlot(Rect rect, string key, bool toolSlot, bool selected, Item item)
+    {
+        DrawPanel(rect);
+        if (selected)
+        {
+            Color previous = GUI.color;
+            GUI.color = Gold;
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 3f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.yMax - 3f, rect.width, 3f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, 3f, rect.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.xMax - 3f, rect.y, 3f, rect.height), Texture2D.whiteTexture);
+            GUI.color = previous;
+        }
+
+        if (toolSlot)
+            DrawPickIcon(rect);
+        else if (item != null)
+            DrawItemSwatch(rect, item.Kind);
+
+        Label(new Rect(rect.x + 4f, rect.y + 1f, 18f, 16f), key, captionStyle, Muted);
+    }
+
+    void DrawPickIcon(Rect rect)
+    {
+        Color previous = GUI.color;
+        GUI.color = new Color(0.59f, 0.38f, 0.22f);
+        GUI.DrawTexture(new Rect(rect.center.x - 3f, rect.y + 14f, 6f, rect.height - 24f), Texture2D.whiteTexture);
+        GUI.color = new Color(0.72f, 0.75f, 0.8f);
+        GUI.DrawTexture(new Rect(rect.center.x - 12f, rect.y + 12f, 22f, 7f), Texture2D.whiteTexture);
+        GUI.color = previous;
+    }
+
+    void DrawItemSwatch(Rect rect, ItemKind kind)
+    {
+        Color previous = GUI.color;
+        if (kind == ItemKind.Ore)
+            GUI.color = new Color(0.55f, 0.34f, 0.28f);
+        else if (kind == ItemKind.Product)
+            GUI.color = new Color(0.74f, 0.76f, 0.8f);
+        else
+            GUI.color = new Color(0.95f, 0.62f, 0.12f);
+
+        float pad = 16f;
+        GUI.DrawTexture(new Rect(rect.x + pad, rect.y + pad, rect.width - pad * 2f, rect.height - pad * 2f), Texture2D.whiteTexture);
+        GUI.color = previous;
     }
 
     void DrawFurnaceBar()

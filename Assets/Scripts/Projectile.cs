@@ -98,6 +98,10 @@ public class Projectile : MonoBehaviour
             return;
 
         spent = true;
+        WaveEnemy enemy = collider.GetComponentInParent<WaveEnemy>();
+        if (enemy != null)
+            enemy.TakeDamage(damage);
+
         TargetDummy target = collider.GetComponentInParent<TargetDummy>();
         if (target != null)
             target.TakeDamage(damage);
