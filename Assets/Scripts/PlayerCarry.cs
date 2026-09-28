@@ -36,6 +36,10 @@ public class PlayerCarry : MonoBehaviour
 
     public bool IsHolding => heldBody != null;
 
+    public bool ThrewThisFrame { get; private set; }
+
+    public bool InputEnabled => inputEnabled;
+
     public bool IsCarrying(Rigidbody body)
     {
         return body != null && heldBody == body;
@@ -53,6 +57,7 @@ public class PlayerCarry : MonoBehaviour
 
     void Update()
     {
+        ThrewThisFrame = false;
         if (!inputEnabled)
             return;
 
@@ -64,7 +69,10 @@ public class PlayerCarry : MonoBehaviour
             && Cursor.lockState == CursorLockMode.Locked;
 
         if (heldBody != null && throwPressed && cameraTransform != null)
+        {
             Release(cameraTransform.forward * throwForce);
+            ThrewThisFrame = true;
+        }
         else if (interact)
         {
             if (heldBody != null)
@@ -233,24 +241,5 @@ public class PlayerCarry : MonoBehaviour
             if (colliders[i] != null)
                 Physics.IgnoreCollision(colliders[i], playerCollider, ignore);
         }
-    }
-
-    void OnGUI()
-    {
-        const float arm = 6f;
-        const float gap = 3f;
-        const float thickness = 2f;
-
-        float centerX = Screen.width * 0.5f;
-        float centerY = Screen.height * 0.5f;
-        Color previous = GUI.color;
-        GUI.color = Color.white;
-
-        GUI.DrawTexture(new Rect(centerX - gap - arm, centerY - thickness * 0.5f, arm, thickness), Texture2D.whiteTexture);
-        GUI.DrawTexture(new Rect(centerX + gap, centerY - thickness * 0.5f, arm, thickness), Texture2D.whiteTexture);
-        GUI.DrawTexture(new Rect(centerX - thickness * 0.5f, centerY - gap - arm, thickness, arm), Texture2D.whiteTexture);
-        GUI.DrawTexture(new Rect(centerX - thickness * 0.5f, centerY + gap, thickness, arm), Texture2D.whiteTexture);
-
-        GUI.color = previous;
     }
 }

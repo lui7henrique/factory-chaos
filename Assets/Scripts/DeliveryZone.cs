@@ -11,7 +11,8 @@ public class DeliveryZone : MonoBehaviour
 
     PlayerCarry playerCarry;
     int money;
-    GUIStyle labelStyle;
+
+    public int Money => money;
 
     void Awake()
     {
@@ -46,18 +47,5 @@ public class DeliveryZone : MonoBehaviour
         item.enabled = false;
         money += valuePerProduct;
         Destroy(body != null ? body.gameObject : item.gameObject);
-    }
-
-    void OnGUI()
-    {
-        if (labelStyle == null)
-        {
-            labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 22;
-            labelStyle.fontStyle = FontStyle.Bold;
-            labelStyle.normal.textColor = Color.white;
-        }
-
-        GUI.Label(new Rect(16f, 16f, 320f, 36f), $"Dinheiro: ${money}", labelStyle);
     }
 }

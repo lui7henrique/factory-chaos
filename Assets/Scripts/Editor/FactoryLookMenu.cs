@@ -3,9 +3,6 @@ using UnityEngine;
 
 public static class FactoryLookMenu
 {
-    const string MachineBodyPath = "Assets/Materials/Machine.mat";
-    const string MachineAccentPath = "Assets/Materials/MachineAccent.mat";
-    const string MachineLampPath = "Assets/Materials/MachineLamp.mat";
     const string DeliveryBasePath = "Assets/Materials/Delivery - Base.mat";
     const string DeliveryFramePath = "Assets/Materials/DeliveryFrame.mat";
     const string DeliveryPadPath = "Assets/Materials/DeliveryPad.mat";
@@ -37,16 +34,7 @@ public static class FactoryLookMenu
         if (ground == null)
             return;
 
-        MeshRenderer renderer = ground.GetComponent<MeshRenderer>();
-        Material groundMaterial = Load("Assets/Materials/Ground.mat");
-        if (renderer != null && groundMaterial != null)
-        {
-            Undo.RecordObject(renderer, "Restyle Ground");
-            renderer.sharedMaterial = groundMaterial;
-        }
-
-        Undo.RecordObject(ground.transform, "Restyle Ground");
-        ground.transform.localScale = new Vector3(2.5f, 1f, 2.5f);
+        GroundVisualMenu.RebuildExisting(ground.transform);
     }
 
     static void StyleOrePrefab()
@@ -133,60 +121,11 @@ public static class FactoryLookMenu
         int group = Undo.GetCurrentGroup();
         Undo.SetCurrentGroupName("Restyle Machine And Delivery");
 
-        StyleMachine(machine);
+        FurnaceVisualMenu.RebuildExisting(machine.transform);
         StyleDelivery(delivery);
 
         Undo.CollapseUndoOperations(group);
         Selection.objects = new Object[] { machine, delivery };
-    }
-
-    static void StyleMachine(GameObject machine)
-    {
-        Transform root = machine.transform;
-        ClearVisuals(root);
-
-        Material body = Load(MachineBodyPath);
-        Material accent = Load(MachineAccentPath);
-        Material lamp = Load(MachineLampPath);
-
-        Transform bodyTransform = root.Find("Body");
-        if (bodyTransform != null)
-        {
-            MeshRenderer bodyRenderer = bodyTransform.GetComponent<MeshRenderer>();
-            if (bodyRenderer != null)
-            {
-                Undo.RecordObject(bodyRenderer, "Restyle Machine");
-                bodyRenderer.sharedMaterial = body;
-            }
-        }
-
-        Transform visuals = CreateEmpty(root, "Visuals");
-
-        CreateCube(visuals, "HopperBack", new Vector3(0f, 1.18f, -0.48f), Quaternion.Euler(-25f, 0f, 0f), new Vector3(1.15f, 0.08f, 0.55f), body);
-        CreateCube(visuals, "HopperFront", new Vector3(0f, 1.18f, 0.48f), Quaternion.Euler(25f, 0f, 0f), new Vector3(1.15f, 0.08f, 0.55f), body);
-        CreateCube(visuals, "HopperLeft", new Vector3(-0.48f, 1.18f, 0f), Quaternion.Euler(0f, 0f, 25f), new Vector3(0.55f, 0.08f, 1.15f), body);
-        CreateCube(visuals, "HopperRight", new Vector3(0.48f, 1.18f, 0f), Quaternion.Euler(0f, 0f, -25f), new Vector3(0.55f, 0.08f, 1.15f), body);
-
-        CreateCube(visuals, "ChuteFloor", new Vector3(0f, 0.18f, 1.15f), Quaternion.identity, new Vector3(0.62f, 0.06f, 0.9f), body);
-        CreateCube(visuals, "ChuteLeft", new Vector3(-0.3f, 0.32f, 1.15f), Quaternion.identity, new Vector3(0.06f, 0.22f, 0.9f), accent);
-        CreateCube(visuals, "ChuteRight", new Vector3(0.3f, 0.32f, 1.15f), Quaternion.identity, new Vector3(0.06f, 0.22f, 0.9f), accent);
-
-        CreateCube(visuals, "Stripe", new Vector3(0.72f, 0.52f, 0f), Quaternion.identity, new Vector3(0.08f, 0.28f, 0.9f), accent);
-        GameObject lampObject = CreateCube(visuals, "StatusLamp", new Vector3(0.72f, 0.88f, 0.32f), Quaternion.identity, new Vector3(0.08f, 0.16f, 0.16f), lamp);
-
-        CreateCube(visuals, "LegFL", new Vector3(-0.58f, 0.08f, 0.58f), Quaternion.identity, new Vector3(0.18f, 0.16f, 0.18f), accent);
-        CreateCube(visuals, "LegFR", new Vector3(0.58f, 0.08f, 0.58f), Quaternion.identity, new Vector3(0.18f, 0.16f, 0.18f), accent);
-        CreateCube(visuals, "LegBL", new Vector3(-0.58f, 0.08f, -0.58f), Quaternion.identity, new Vector3(0.18f, 0.16f, 0.18f), accent);
-        CreateCube(visuals, "LegBR", new Vector3(0.58f, 0.08f, -0.58f), Quaternion.identity, new Vector3(0.18f, 0.16f, 0.18f), accent);
-
-        OreMachine oreMachine = root.GetComponentInChildren<OreMachine>();
-        if (oreMachine != null)
-        {
-            Undo.RecordObject(oreMachine, "Restyle Machine");
-            SerializedObject so = new SerializedObject(oreMachine);
-            so.FindProperty("statusRenderer").objectReferenceValue = lampObject.GetComponent<MeshRenderer>();
-            so.ApplyModifiedProperties();
-        }
     }
 
     static void StyleDelivery(GameObject delivery)

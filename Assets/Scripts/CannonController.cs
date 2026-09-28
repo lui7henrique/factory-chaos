@@ -29,6 +29,7 @@ public class CannonController : MonoBehaviour
 
     PlayerMovement playerMovement;
     PlayerCarry playerCarry;
+    PlayerMining playerMining;
     Collider[] cannonColliders;
     Transform cameraTransform;
     Transform savedParent;
@@ -40,7 +41,10 @@ public class CannonController : MonoBehaviour
     bool operating;
     bool showPrompt;
     float emptyUntil;
-    GUIStyle labelStyle;
+
+    public bool IsOperating => operating;
+    public bool ShowsOperatePrompt => showPrompt;
+    public bool EmptyWarning => Time.time < emptyUntil;
 
     public void Configure(Transform yaw, Transform pitch, Transform muzzlePoint, Transform sightPoint, Material shotMaterial)
     {
@@ -118,6 +122,7 @@ public class CannonController : MonoBehaviour
             playerMovement.SetInputEnabled(false);
         if (playerCarry != null)
             playerCarry.SetInputEnabled(false);
+        SetMiningEnabled(false);
 
         cameraTransform.SetParent(sight, false);
         cameraTransform.localPosition = Vector3.zero;
@@ -152,8 +157,19 @@ public class CannonController : MonoBehaviour
             playerMovement.SetInputEnabled(true);
         }
 
+        SetMiningEnabled(true);
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+    }
+
+    void SetMiningEnabled(bool enabled)
+    {
+        if (playerMining == null)
+            playerMining = FindAnyObjectByType<PlayerMining>();
+
+        if (playerMining != null)
+            playerMining.SetInputEnabled(enabled);
     }
 
     void Aim()
@@ -226,37 +242,5 @@ public class CannonController : MonoBehaviour
             return false;
 
         return Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame;
-    }
-
-    void OnGUI()
-    {
-        if (labelStyle == null)
-        {
-            labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 20;
-            labelStyle.fontStyle = FontStyle.Bold;
-            labelStyle.alignment = TextAnchor.MiddleCenter;
-            labelStyle.normal.textColor = Color.white;
-        }
-
-        float width = 420f;
-        float x = (Screen.width - width) * 0.5f;
-        float y = Screen.height - 88f;
-
-        if (operating)
-        {
-            GUI.Label(new Rect(x, y, width, 28f), $"Munição: {rounds}/{capacity}", labelStyle);
-            GUI.Label(new Rect(x, y + 26f, width, 28f), "E ou Esc — sair", labelStyle);
-            if (Time.time < emptyUntil)
-                GUI.Label(new Rect(x, y - 28f, width, 28f), "Sem munição", labelStyle);
-        }
-        else if (showPrompt)
-        {
-            GUI.Label(new Rect(x, y, width, 28f), "E — operar", labelStyle);
-        }
-        else if (Time.time < emptyUntil)
-        {
-            GUI.Label(new Rect(x, y, width, 28f), "Sem munição", labelStyle);
-        }
     }
 }

@@ -926,6 +926,7 @@ MonoBehaviour:
   count: 10
   spacing: 0.42
   layerHeight: 0.32
+  spawnOnStart: 0
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0

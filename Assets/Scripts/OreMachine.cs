@@ -16,12 +16,30 @@ public class OreMachine : MonoBehaviour
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
-    static readonly Color AvailableColor = new Color(0.18f, 0.75f, 0.22f);
-    static readonly Color ProcessingColor = new Color(0.95f, 0.78f, 0.12f);
+    static readonly Color AvailableColor = new Color(0.349f, 0.937f, 0.380f);
+    static readonly Color ProcessingColor = new Color(1f, 0.749f, 0.212f);
 
     PlayerCarry playerCarry;
     Material statusMaterial;
     bool busy;
+    float processEnd;
+
+    public bool IsProcessing => busy;
+    public float ProcessDuration => processDuration;
+    public float ProcessSecondsLeft => busy ? Mathf.Max(0f, processEnd - Time.time) : 0f;
+
+    public void AssignStatus(Renderer renderer)
+    {
+        statusRenderer = renderer;
+        if (statusMaterial != null)
+            Destroy(statusMaterial);
+
+        statusMaterial = renderer != null ? renderer.material : null;
+        if (busy)
+            ShowProcessing();
+        else
+            ShowAvailable();
+    }
 
     void Awake()
     {
@@ -66,6 +84,7 @@ public class OreMachine : MonoBehaviour
             return;
 
         busy = true;
+        processEnd = Time.time + processDuration;
         Destroy(body != null ? body.gameObject : item.gameObject);
         ShowProcessing();
         StartCoroutine(Process());
@@ -114,6 +133,6 @@ public class OreMachine : MonoBehaviour
 
         statusMaterial.SetColor(BaseColorId, color);
         statusMaterial.EnableKeyword("_EMISSION");
-        statusMaterial.SetColor(EmissionColorId, color * 0.45f);
+        statusMaterial.SetColor(EmissionColorId, color * 0.65f);
     }
 }

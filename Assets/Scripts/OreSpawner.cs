@@ -9,11 +9,17 @@ public class OreSpawner : MonoBehaviour
     [SerializeField] int count = 10;
     [SerializeField] float spacing = 0.42f;
     [SerializeField] float layerHeight = 0.32f;
+    [SerializeField] bool spawnOnStart;
+
+    public GameObject OrePrefab => orePrefab;
 
     const float GroundClearance = 0.15f;
 
     void Start()
     {
+        if (!spawnOnStart)
+            return;
+
         if (orePrefab == null)
         {
             Debug.LogWarning("OreSpawner needs an ore prefab.", this);

@@ -17,7 +17,6 @@ public class TargetDummy : MonoBehaviour
     float health;
     float flash;
     bool destroyed;
-    GUIStyle labelStyle;
 
     public void Configure(Renderer boardRenderer)
     {
@@ -98,32 +97,5 @@ public class TargetDummy : MonoBehaviour
 
         boardMaterial.SetColor(BaseColorId, color);
         boardMaterial.SetColor("_Color", color);
-    }
-
-    void OnGUI()
-    {
-        if (labelStyle == null)
-        {
-            labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 18;
-            labelStyle.fontStyle = FontStyle.Bold;
-            labelStyle.alignment = TextAnchor.MiddleCenter;
-            labelStyle.normal.textColor = Color.white;
-        }
-
-        float width = 240f;
-        float x = (Screen.width - width) * 0.5f;
-        string title = destroyed ? "Alvo destruído" : $"Alvo: {Mathf.CeilToInt(health)}";
-        GUI.Label(new Rect(x, 16f, width, 24f), title, labelStyle);
-
-        Rect bar = new Rect(x, 42f, width, 16f);
-        Color previous = GUI.color;
-        GUI.color = new Color(0.12f, 0.12f, 0.12f, 0.9f);
-        GUI.DrawTexture(bar, Texture2D.whiteTexture);
-
-        float fraction = maxHealth <= 0f ? 0f : Mathf.Clamp01(health / maxHealth);
-        GUI.color = destroyed ? new Color(0.35f, 0.35f, 0.35f) : new Color(0.82f, 0.22f, 0.18f);
-        GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * fraction, bar.height), Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

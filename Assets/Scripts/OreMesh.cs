@@ -14,6 +14,16 @@ public class OreMesh : MonoBehaviour
         Apply(gameObject);
     }
 
+    public static Mesh SharedRock()
+    {
+        return RockMesh();
+    }
+
+    public static Mesh SharedCrystal()
+    {
+        return CrystalMesh();
+    }
+
     public static void Apply(GameObject root)
     {
         if (root == null)
