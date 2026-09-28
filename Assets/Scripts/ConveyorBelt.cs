@@ -33,6 +33,8 @@ public class ConveyorBelt : MonoBehaviour
     float nextSwitchTime;
     bool jammed;
 
+    public bool IsJammed => jammed;
+
     void Awake()
     {
         BoxCollider box = GetComponent<BoxCollider>();

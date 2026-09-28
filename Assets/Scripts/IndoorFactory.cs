@@ -23,19 +23,23 @@ public static class IndoorFactory
     const float Wall = 0.28f;
     const float TunnelWidth = 3.5f;
     const float TunnelHeight = 3f;
-    const float TunnelDepth = 5f;
+    const float TunnelDepth = 14f;
+
+    public const float PlaySpread = 1.7f;
 
     public struct Kit
     {
         public GameObject orePrefab;
         public GameObject productPrefab;
         public Material concrete;
-        public Material concreteAlt;
-        public Material panel;
+        public Material wall;
         public Material structure;
+        public Material iron;
         public Material rock;
         public Material marking;
         public Material belt;
+        public AmmoMachineVisual.Palette press;
+        public CannonVisual.Palette cannon;
         public Mesh cube;
         public FurnaceVisual.Palette furnace;
         public OreVeinVisual.Palette vein;
@@ -128,38 +132,33 @@ public static class IndoorFactory
         Transform shell = Empty(root, "Shell");
         Box(shell, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(Width, 0.2f, Length), kit.concrete, true, false);
         Slab(shell, "FloorPlateA", new Vector3(-3f, 0.012f, -4f), new Vector3(5.96f, 0.02f, 7.96f), kit.concrete);
-        Slab(shell, "FloorPlateB", new Vector3(3f, 0.014f, -4f), new Vector3(5.96f, 0.02f, 7.96f), kit.concreteAlt);
-        Slab(shell, "FloorPlateC", new Vector3(-3f, 0.014f, 4f), new Vector3(5.96f, 0.02f, 7.96f), kit.concreteAlt);
-        Slab(shell, "FloorPlateD", new Vector3(3f, 0.012f, 4f), new Vector3(5.96f, 0.02f, 7.96f), kit.concrete);
+        Slab(shell, "FloorPlateB", new Vector3(3f, 0.014f, -4f), new Vector3(5.96f, 0.02f, 7.96f), kit.wall);
+        Slab(shell, "FloorPlateC", new Vector3(-3f, 0.014f, 4f), new Vector3(5.96f, 0.02f, 7.96f), kit.concrete);
+        Slab(shell, "FloorPlateD", new Vector3(3f, 0.012f, 4f), new Vector3(5.96f, 0.02f, 7.96f), kit.wall);
 
-        Box(shell, "WallFront", new Vector3(0f, Height * 0.5f, -HalfLength - Wall * 0.5f), new Vector3(Width + Wall * 2f, Height, Wall), kit.panel, true, false);
-        Box(shell, "WallRight", new Vector3(HalfWidth + Wall * 0.5f, Height * 0.5f, 0f), new Vector3(Wall, Height, Length), kit.panel, true, false);
-        Box(shell, "WallLeftMetal", new Vector3(-HalfWidth - Wall * 0.5f, Height * 0.5f, 2.5f), new Vector3(Wall, Height, 11f), kit.panel, true, false);
+        Box(shell, "WallFront", new Vector3(0f, Height * 0.5f, -HalfLength - Wall * 0.5f), new Vector3(Width + Wall * 2f, Height, Wall), kit.wall, true, false);
+        Box(shell, "WallRight", new Vector3(HalfWidth + Wall * 0.5f, Height * 0.5f, 0f), new Vector3(Wall, Height, Length), kit.wall, true, false);
+        Box(shell, "WallLeftMetal", new Vector3(-HalfWidth - Wall * 0.5f, Height * 0.5f, 2.5f), new Vector3(Wall, Height, 11f), kit.wall, true, false);
         Box(shell, "WallLeftRock", new Vector3(-HalfWidth - Wall * 0.5f, Height * 0.5f, -5.5f), new Vector3(Wall, Height, 5f), kit.rock, true, false);
         BuildBackWall(shell, kit);
+        BuildTrim(shell, kit);
         Box(shell, "Ceiling", new Vector3(0f, Height + 0.08f, 0f), new Vector3(Width + Wall * 2f, 0.16f, Length + Wall), kit.structure, true, false);
 
         Transform beams = Empty(shell, "Beams");
         Beam(beams, -4.2f, kit);
         Beam(beams, 0.4f, kit);
         Beam(beams, 5.2f, kit);
-
-        Box(shell, "ConduitLeft", new Vector3(-5.55f, 4.15f, 0f), new Vector3(0.14f, 0.14f, 14.5f), kit.structure, false, false);
-        Box(shell, "ConduitRight", new Vector3(5.55f, 4.15f, 0.4f), new Vector3(0.14f, 0.14f, 13.5f), kit.structure, false, false);
+        Box(shell, "ServiceLeft", new Vector3(-5.35f, 4.18f, 0.2f), new Vector3(0.32f, 0.18f, 13.2f), kit.structure, false, false);
+        Box(shell, "ServiceRight", new Vector3(5.35f, 4.18f, -0.2f), new Vector3(0.32f, 0.18f, 13.2f), kit.structure, false, false);
 
         Transform marks = Empty(shell, "Marks");
-        Stripe(marks, "LineNorth", new Vector3(-3.7f, 0.03f, 1.6f), new Vector3(0.12f, 0.01f, 5.4f), kit.marking);
-        Stripe(marks, "LineSouth", new Vector3(-3.7f, 0.03f, -1.15f), new Vector3(2.6f, 0.01f, 0.12f), kit.marking);
-        Stripe(marks, "Delivery", new Vector3(4.2f, 0.03f, -4.55f), new Vector3(1.8f, 0.01f, 0.12f), kit.marking);
-        Stripe(marks, "Cannon", new Vector3(0.15f, 0.03f, 2.35f), new Vector3(2.2f, 0.01f, 0.12f), kit.marking);
-
-        Bolt(shell, new Vector3(-5.7f, 2.2f, -3.2f), kit.structure);
-        Bolt(shell, new Vector3(-5.7f, 2.2f, 2.2f), kit.structure);
-        Bolt(shell, new Vector3(5.7f, 2.2f, -3.2f), kit.structure);
-        Bolt(shell, new Vector3(5.7f, 2.2f, 4.4f), kit.structure);
-        Bolt(shell, new Vector3(0f, 3.35f, HalfLength), kit.structure);
+        Stripe(marks, "LineNorth", new Vector3(-3.7f, 0.03f, 1.6f), new Vector3(0.16f, 0.012f, 5.4f), kit.marking);
+        Stripe(marks, "LineSouth", new Vector3(-3.7f, 0.03f, -1.15f), new Vector3(2.6f, 0.012f, 0.16f), kit.marking);
+        Stripe(marks, "Delivery", new Vector3(4.2f, 0.03f, -4.55f), new Vector3(1.8f, 0.012f, 0.16f), kit.marking);
+        Stripe(marks, "Cannon", new Vector3(0.15f, 0.03f, 2.35f), new Vector3(2.2f, 0.012f, 0.16f), kit.marking);
 
         BuildTunnel(shell, kit);
+        RockWallModules.Place(shell);
     }
 
     static void BuildBackWall(Transform shell, Kit kit)
@@ -167,15 +166,40 @@ public static class IndoorFactory
         float back = HalfLength + Wall * 0.5f;
         float side = (Width - TunnelWidth) * 0.5f;
         float sideCenter = TunnelWidth * 0.5f + side * 0.5f;
-        Box(shell, "BackLeft", new Vector3(-sideCenter, Height * 0.5f, back), new Vector3(side, Height, Wall), kit.panel, true, false);
-        Box(shell, "BackRight", new Vector3(sideCenter, Height * 0.5f, back), new Vector3(side, Height, Wall), kit.panel, true, false);
+        Box(shell, "BackLeft", new Vector3(-sideCenter, Height * 0.5f, back), new Vector3(side, Height, Wall), kit.wall, true, false);
+        Box(shell, "BackRight", new Vector3(sideCenter, Height * 0.5f, back), new Vector3(side, Height, Wall), kit.wall, true, false);
         float lintel = Height - TunnelHeight;
         Box(shell, "BackLintel", new Vector3(0f, TunnelHeight + lintel * 0.5f, back), new Vector3(TunnelWidth, lintel, Wall), kit.structure, true, false);
 
-        float frame = 0.22f;
-        Box(shell, "TunnelFrameLeft", new Vector3(-TunnelWidth * 0.5f - frame * 0.15f, TunnelHeight * 0.5f, HalfLength - 0.02f), new Vector3(frame, TunnelHeight + 0.2f, 0.34f), kit.structure, true, false);
-        Box(shell, "TunnelFrameRight", new Vector3(TunnelWidth * 0.5f + frame * 0.15f, TunnelHeight * 0.5f, HalfLength - 0.02f), new Vector3(frame, TunnelHeight + 0.2f, 0.34f), kit.structure, true, false);
-        Box(shell, "TunnelFrameTop", new Vector3(0f, TunnelHeight + 0.08f, HalfLength - 0.02f), new Vector3(TunnelWidth + frame * 2f, frame, 0.34f), kit.structure, true, false);
+        float frame = 0.36f;
+        Box(shell, "TunnelFrameLeft", new Vector3(-TunnelWidth * 0.5f - 0.04f, TunnelHeight * 0.5f, HalfLength - 0.04f), new Vector3(frame, TunnelHeight + 0.28f, 0.42f), kit.structure, true, false);
+        Box(shell, "TunnelFrameRight", new Vector3(TunnelWidth * 0.5f + 0.04f, TunnelHeight * 0.5f, HalfLength - 0.04f), new Vector3(frame, TunnelHeight + 0.28f, 0.42f), kit.structure, true, false);
+        Box(shell, "TunnelFrameTop", new Vector3(0f, TunnelHeight + 0.1f, HalfLength - 0.04f), new Vector3(TunnelWidth + frame * 2f, 0.28f, 0.42f), kit.structure, true, false);
+        Box(shell, "TunnelMark", new Vector3(0f, TunnelHeight + 0.28f, HalfLength - 0.22f), new Vector3(1.4f, 0.1f, 0.08f), kit.marking, false, false);
+    }
+
+    static void BuildTrim(Transform shell, Kit kit)
+    {
+        Transform trim = Empty(shell, "Trim");
+        float y = 0.18f;
+        Vector3 skirt = new Vector3(0.16f, 0.36f, 0.16f);
+        Box(trim, "SkirtLeft", new Vector3(-5.78f, y, 0f), new Vector3(skirt.x, skirt.y, 15.4f), kit.structure, true, false);
+        Box(trim, "SkirtRight", new Vector3(5.78f, y, 0f), new Vector3(skirt.x, skirt.y, 15.4f), kit.structure, true, false);
+        Box(trim, "SkirtFront", new Vector3(0f, y, -7.78f), new Vector3(11.4f, skirt.y, skirt.z), kit.structure, true, false);
+        Box(trim, "SkirtBackLeft", new Vector3(-3.95f, y, 7.78f), new Vector3(3.7f, skirt.y, skirt.z), kit.structure, true, false);
+        Box(trim, "SkirtBackRight", new Vector3(3.95f, y, 7.78f), new Vector3(3.7f, skirt.y, skirt.z), kit.structure, true, false);
+
+        Pillar(trim, new Vector3(-5.72f, 0f, -7.72f), kit);
+        Pillar(trim, new Vector3(5.72f, 0f, -7.72f), kit);
+        Pillar(trim, new Vector3(-5.72f, 0f, 7.72f), kit);
+        Pillar(trim, new Vector3(5.72f, 0f, 7.72f), kit);
+        Pillar(trim, new Vector3(-5.72f, 0f, -3f), kit);
+        Pillar(trim, new Vector3(5.72f, 0f, 2.4f), kit);
+    }
+
+    static void Pillar(Transform parent, Vector3 position, Kit kit)
+    {
+        Box(parent, "Pillar", position + new Vector3(0f, Height * 0.5f, 0f), new Vector3(0.42f, Height, 0.42f), kit.structure, true, false);
     }
 
     static void BuildTunnel(Transform shell, Kit kit)
@@ -184,7 +208,7 @@ public static class IndoorFactory
         float start = HalfLength;
         float center = start + TunnelDepth * 0.5f;
         Box(tunnel, "Floor", new Vector3(0f, -0.1f, center), new Vector3(TunnelWidth, 0.2f, TunnelDepth), kit.concrete, true, false);
-        Slab(tunnel, "FloorPlate", new Vector3(0f, 0.01f, center), new Vector3(TunnelWidth - 0.04f, 0.02f, TunnelDepth), kit.concreteAlt);
+        Slab(tunnel, "FloorPlate", new Vector3(0f, 0.012f, center), new Vector3(TunnelWidth - 0.08f, 0.02f, TunnelDepth - 0.04f), kit.concrete);
 
         float wallCenter = TunnelWidth * 0.5f + 0.22f;
         Box(tunnel, "RockLeft", new Vector3(-wallCenter, TunnelHeight * 0.5f, center), new Vector3(0.44f, TunnelHeight, TunnelDepth), kit.rock, true, false);
@@ -203,13 +227,12 @@ public static class IndoorFactory
 
     static void BuildLights(Transform root)
     {
-        Color warm = new Color(1f, 0.78f, 0.55f);
-        Lamp(root, "LampFront", new Vector3(0f, 4.22f, -3.2f), warm, 14f, 14f, false, true);
-        Lamp(root, "LampCenter", new Vector3(0f, 4.22f, 1.2f), warm, 16f, 14f, true, true);
-        Lamp(root, "LampBack", new Vector3(0f, 4.22f, 5.6f), warm, 14f, 14f, false, true);
-        Lamp(root, "TunnelLeft", new Vector3(-1.35f, 2.55f, 8.35f), warm, 2.2f, 5f, false, true);
-        Lamp(root, "TunnelRight", new Vector3(1.35f, 2.55f, 8.35f), warm, 2.2f, 5f, false, true);
-        Lamp(root, "FurnaceGlow", new Vector3(-3.2f, 1.12f, -0.35f), new Color(1f, 0.42f, 0.12f), 3.5f, 3.8f, false, false);
+        Lamp(root, "LampFront", new Vector3(0f, 4.22f, -3.2f), ArtPalette.Fill, 6f, 11f, false);
+        Lamp(root, "LampCenter", new Vector3(0f, 4.22f, 1.2f), ArtPalette.Fill, 6.5f, 11f, true);
+        Lamp(root, "LampBack", new Vector3(0f, 4.22f, 5.6f), ArtPalette.Fill, 6f, 11f, false);
+        Lamp(root, "TunnelLeft", new Vector3(-1.35f, 2.55f, 8.35f), ArtPalette.Fill, 2f, 5.5f, false);
+        Lamp(root, "TunnelRight", new Vector3(1.35f, 2.55f, 8.35f), ArtPalette.Fill, 2f, 5.5f, false);
+        Lamp(root, "FurnaceGlow", new Vector3(-3.2f, 1.12f, -0.35f), ArtPalette.Fire, 2.4f, 4f, false, false);
     }
 
     static void BuildStations(Transform root, Kit kit)
@@ -268,12 +291,21 @@ public static class IndoorFactory
         Box(duct, "Run", new Vector3(chimney.x, 4.22f, chimney.z + 1.4f), new Vector3(0.22f, 0.16f, 2.8f), kit.structure, false, false);
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void ConnectLine()
+    {
+        if (!FactorySite.IsIndoor)
+            return;
+
+        ConveyorVisual.AlignToMachines();
+    }
+
     static void BuildConveyor(Transform root, Kit kit)
     {
         GameObject conveyor = Empty(root, "Conveyor").gameObject;
-        conveyor.transform.position = new Vector3(-4.07f, 0f, 2.55f);
-        Box(conveyor.transform, "Base", new Vector3(0f, 0.1f, 0f), new Vector3(1.2f, 0.2f, 4f), kit.belt, true, false);
-        GameObject zone = Box(conveyor.transform, "Zone", new Vector3(0f, 0.6f, 0f), new Vector3(1.2f, 0.8f, 4f), kit.belt, true, true);
+        conveyor.transform.position = new Vector3(-4.07f, 0f, 3.25f);
+        Box(conveyor.transform, "Base", new Vector3(0f, 0.2f, 0f), new Vector3(1.15f, 0.4f, 4.2f), kit.belt, true, false);
+        GameObject zone = Box(conveyor.transform, "Zone", new Vector3(0f, 0.7f, 0f), new Vector3(1.15f, 0.8f, 4.2f), kit.belt, true, true);
         zone.GetComponent<MeshRenderer>().enabled = false;
         zone.AddComponent<ConveyorBelt>();
         Box(conveyor.transform, "Direction", new Vector3(0.42f, 0.22f, 0.2f), new Vector3(0.08f, 0.02f, 1.4f), kit.marking, false, false);
@@ -282,8 +314,8 @@ public static class IndoorFactory
     static void BuildPress(Transform root, Kit kit)
     {
         GameObject machine = Empty(root, "AmmoMachine").gameObject;
-        machine.transform.position = new Vector3(-1.7f, 0f, 6.15f);
-        machine.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        machine.transform.position = new Vector3(-4.07f, 0f, 6.5f);
+        machine.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
 
         GameObject input = Empty(machine.transform, "Input").gameObject;
         BoxCollider trigger = input.AddComponent<BoxCollider>();
@@ -292,7 +324,8 @@ public static class IndoorFactory
 
         Transform output = Empty(machine.transform, "Output");
         GameObject template = CreateAmmoTemplate(root);
-        AmmoMachineVisual.Rebuild(machine.transform, AmmoMachineVisual.RuntimePalette());
+        AmmoMachineVisual.Palette pressPalette = kit.press.panel != null ? kit.press : PressPalette();
+        AmmoMachineVisual.Rebuild(machine.transform, pressPalette);
         Transform lens = machine.transform.Find("Visuals/StatusLight/Lens");
         press.Configure(output, template, lens != null ? lens.GetComponent<Renderer>() : null);
     }
@@ -315,10 +348,10 @@ public static class IndoorFactory
         delivery.transform.position = new Vector3(4.25f, 0f, -4.2f);
 
         Box(delivery.transform, "Counter", new Vector3(0f, 0.48f, 0f), new Vector3(1.7f, 0.96f, 0.7f), kit.structure, true, false);
-        Box(delivery.transform, "Top", new Vector3(0f, 0.98f, 0f), new Vector3(1.82f, 0.06f, 0.82f), kit.panel, true, false);
+        Box(delivery.transform, "Top", new Vector3(0f, 0.98f, 0f), new Vector3(1.82f, 0.06f, 0.82f), kit.iron, true, false);
         Stripe(delivery.transform, "Lip", new Vector3(0f, 0.86f, 0.38f), new Vector3(1.7f, 0.08f, 0.04f), kit.marking);
 
-        GameObject zone = Box(delivery.transform, "Zone", new Vector3(0f, 1.25f, 0f), new Vector3(1.5f, 0.45f, 0.7f), kit.panel, true, true);
+        GameObject zone = Box(delivery.transform, "Zone", new Vector3(0f, 1.25f, 0f), new Vector3(1.5f, 0.45f, 0.7f), kit.wall, true, true);
         zone.GetComponent<MeshRenderer>().enabled = false;
         zone.AddComponent<DeliveryZone>();
     }
@@ -327,7 +360,8 @@ public static class IndoorFactory
     {
         GameObject cannon = Empty(root, "Cannon").gameObject;
         cannon.transform.position = new Vector3(0.15f, 0f, 3.55f);
-        CannonVisual.Rebuild(cannon.transform, CannonVisual.RuntimePalette(), CannonVisual.BuildMeshes());
+        CannonVisual.Palette cannonPalette = kit.cannon.support != null ? kit.cannon : CannonPalette();
+        CannonVisual.Rebuild(cannon.transform, cannonPalette, CannonVisual.BuildMeshes());
 
         CannonController controller = cannon.GetComponent<CannonController>();
         if (controller == null)
@@ -340,7 +374,7 @@ public static class IndoorFactory
         controller.Configure(yaw, pitch, muzzle, sight, kit.marking);
 
         GameObject target = Empty(root, "Target").gameObject;
-        target.transform.position = new Vector3(0.15f, 0f, 12.15f);
+        target.transform.position = new Vector3(0.15f, 0f, 18.4f);
         Box(target.transform, "Base", new Vector3(0f, 0.15f, 0f), new Vector3(1.5f, 0.3f, 0.8f), kit.structure, true, false);
         Material boardMaterial = ArtMaterials.Make("TargetBoard", new Color(0.75f, 0.18f, 0.16f), 0.06f, 0f, false);
         GameObject board = Box(target.transform, "Board", new Vector3(0f, 1.3f, 0f), new Vector3(1.2f, 1.9f, 0.28f), boardMaterial, true, false);
@@ -381,28 +415,32 @@ public static class IndoorFactory
         RenderSettings.skybox = null;
         RenderSettings.sun = null;
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.32f, 0.3f, 0.27f);
-        RenderSettings.ambientEquatorColor = new Color(0.22f, 0.2f, 0.18f);
-        RenderSettings.ambientGroundColor = new Color(0.1f, 0.09f, 0.08f);
-        RenderSettings.ambientIntensity = 1.1f;
-        RenderSettings.fog = false;
+        RenderSettings.ambientSkyColor = ArtPalette.AmbientSky;
+        RenderSettings.ambientEquatorColor = ArtPalette.AmbientEquator;
+        RenderSettings.ambientGroundColor = ArtPalette.AmbientGround;
+        RenderSettings.ambientIntensity = 1f;
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Exponential;
+        RenderSettings.fogColor = ArtPalette.Fog;
+        RenderSettings.fogDensity = 0.012f;
     }
 
-    static void Lamp(Transform parent, string name, Vector3 position, Color color, float intensity, float range, bool shadows, bool warmTemperature)
+    static void Lamp(Transform parent, string name, Vector3 position, Color color, float intensity, float range, bool shadows, bool fixture = true)
     {
         Transform housing = Empty(parent, name);
         housing.position = position;
-        Box(housing, "Housing", new Vector3(0f, 0.12f, 0f), new Vector3(0.7f, 0.08f, 0.28f), structureMaterial, false, false);
+        if (fixture)
+        {
+            Box(housing, "Housing", new Vector3(0f, 0.08f, 0f), new Vector3(0.46f, 0.1f, 0.46f), structureMaterial, false, false);
+            Box(housing, "Shade", new Vector3(0f, -0.02f, 0f), new Vector3(0.32f, 0.06f, 0.32f), markingMaterial, false, false);
+        }
         Light light = housing.gameObject.AddComponent<Light>();
         light.type = LightType.Point;
-        light.color = warmTemperature ? Color.white : color;
-        light.useColorTemperature = warmTemperature;
-        if (warmTemperature)
-            light.colorTemperature = 3500f;
+        light.color = color;
         light.intensity = intensity;
         light.range = range;
         light.shadows = shadows ? LightShadows.Soft : LightShadows.None;
-        light.bounceIntensity = 0.4f;
+        light.bounceIntensity = 0.35f;
     }
 
     static void Beam(Transform parent, float z, Kit kit)
@@ -413,11 +451,6 @@ public static class IndoorFactory
     static void Stripe(Transform parent, string name, Vector3 position, Vector3 size, Material material)
     {
         Box(parent, name, position, size, material, false, false);
-    }
-
-    static void Bolt(Transform parent, Vector3 position, Material material)
-    {
-        Box(parent, "Bolt", position, new Vector3(0.16f, 0.16f, 0.08f), material, false, false);
     }
 
     static void Slab(Transform parent, string name, Vector3 position, Vector3 size, Material material)
@@ -465,28 +498,83 @@ public static class IndoorFactory
 
     static Mesh cubeMesh;
     static Material structureMaterial;
+    static Material markingMaterial;
 
     static Kit Fill(Kit kit)
     {
         if (kit.cube != null)
             cubeMesh = kit.cube;
 
+        ArtMaterials.Set art = ArtMaterials.Runtime();
         if (kit.concrete == null)
-            kit.concrete = ArtMaterials.Make("IndoorConcrete", Hex(0x73716B), 0.06f, 0f, false);
-        if (kit.concreteAlt == null)
-            kit.concreteAlt = ArtMaterials.Make("IndoorConcreteAlt", Hex(0x6A6862), 0.06f, 0f, false);
-        if (kit.panel == null)
-            kit.panel = ArtMaterials.Make("IndoorPanel", Hex(0x686D72), 0.16f, 0.22f, false);
+            kit.concrete = art.concrete;
+        if (kit.wall == null)
+            kit.wall = art.wall;
         if (kit.structure == null)
-            kit.structure = ArtMaterials.Make("IndoorStructure", Hex(0x343A40), 0.12f, 0.18f, false);
-        structureMaterial = kit.structure;
+            kit.structure = art.graphite;
+        if (kit.iron == null)
+            kit.iron = art.iron;
         if (kit.rock == null)
-            kit.rock = ArtMaterials.Make("IndoorRock", Hex(0x514D4B), 0.05f, 0f, false);
+            kit.rock = art.rock;
         if (kit.marking == null)
-            kit.marking = ArtMaterials.Make("IndoorMarking", Hex(0xF4BE32), 0.12f, 0.04f, false);
+            kit.marking = art.marking;
         if (kit.belt == null)
-            kit.belt = kit.structure;
+            kit.belt = art.graphite;
+        if (kit.press.panel == null)
+            kit.press = PressPalette(art);
+        if (kit.cannon.support == null)
+            kit.cannon = CannonPalette(art);
+        if (kit.furnace.body == null)
+            kit.furnace = ArtMaterials.Furnace(art);
+        if (kit.vein.crystal == null)
+        {
+            kit.vein = new OreVeinVisual.Palette
+            {
+                rock = art.rock,
+                dark = art.rock,
+                crystal = art.crystal
+            };
+        }
+
+        structureMaterial = kit.structure;
+        markingMaterial = kit.marking;
         return kit;
+    }
+
+    static AmmoMachineVisual.Palette PressPalette()
+    {
+        return PressPalette(ArtMaterials.Runtime());
+    }
+
+    static AmmoMachineVisual.Palette PressPalette(ArtMaterials.Set art)
+    {
+        return new AmmoMachineVisual.Palette
+        {
+            structure = art.graphite,
+            panel = art.shell,
+            accent = art.marking,
+            metal = art.iron,
+            belt = art.graphite,
+            lamp = art.lampReady
+        };
+    }
+
+    static CannonVisual.Palette CannonPalette()
+    {
+        return CannonPalette(ArtMaterials.Runtime());
+    }
+
+    static CannonVisual.Palette CannonPalette(ArtMaterials.Set art)
+    {
+        return new CannonVisual.Palette
+        {
+            structure = art.graphite,
+            support = art.shell,
+            accent = art.marking,
+            joint = art.iron,
+            bore = art.bore,
+            lamp = art.lampReady
+        };
     }
 
     static Transform Group(string name)
@@ -504,11 +592,6 @@ public static class IndoorFactory
             child.transform.SetParent(parent, false);
         Created?.Invoke(child);
         return child.transform;
-    }
-
-    static Color Hex(int rgb)
-    {
-        return new Color(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, 1f);
     }
 }
 

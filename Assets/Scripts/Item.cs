@@ -20,4 +20,10 @@ public class Item : MonoBehaviour
     {
         kind = value;
     }
+
+    void Awake()
+    {
+        if (kind == ItemKind.Product)
+            IronIngotVisual.Apply(gameObject);
+    }
 }

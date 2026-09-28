@@ -39,6 +39,9 @@ public class OreVeinVisual : MonoBehaviour
 
     public static void Build(Transform veinRoot, Palette palette, Action<GameObject> created)
     {
+        if (ApplyImported(veinRoot))
+            return;
+
         Transform existing = veinRoot.Find("Rocks");
         if (existing != null)
         {
@@ -74,6 +77,13 @@ public class OreVeinVisual : MonoBehaviour
     public void SetSpent()
     {
         spent = true;
+        Transform cluster = transform.Find("Cluster");
+        if (cluster != null)
+        {
+            Tint(cluster, 0.35f);
+            return;
+        }
+
         Transform rocks = transform.Find("Rocks");
         if (rocks == null)
             return;
@@ -109,6 +119,136 @@ public class OreVeinVisual : MonoBehaviour
         }
 
         rocks.localPosition = new Vector3(0f, -0.06f, 0f);
+    }
+
+    void Tint(Transform root, float scale)
+    {
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || renderer.sharedMaterial == null)
+                continue;
+
+            if (block == null)
+                block = new MaterialPropertyBlock();
+
+            Color color = renderer.sharedMaterial.HasProperty("_BaseColor")
+                ? renderer.sharedMaterial.GetColor("_BaseColor")
+                : renderer.sharedMaterial.color;
+            color = new Color(color.r * scale, color.g * scale, color.b * scale, 1f);
+            block.Clear();
+            block.SetColor("_BaseColor", color);
+            block.SetColor("_Color", color);
+            renderer.SetPropertyBlock(block);
+        }
+    }
+
+    const string ModelResource = "OreVein/MeshyCluster";
+    const string MaterialResource = "OreVein/CrystalSurface";
+    const float ClusterHeight = 1.15f;
+
+    void Start()
+    {
+        ApplyImported(transform);
+        if (spent)
+            SetSpent();
+    }
+
+    static bool ApplyImported(Transform veinRoot)
+    {
+        GameObject prefab = Resources.Load<GameObject>(ModelResource);
+        if (prefab == null || veinRoot == null || veinRoot.Find("Cluster") != null)
+            return prefab != null;
+
+        Transform rocks = veinRoot.Find("Rocks");
+        if (rocks != null)
+        {
+            if (Application.isPlaying)
+                Destroy(rocks.gameObject);
+            else
+                DestroyImmediate(rocks.gameObject);
+        }
+
+        GameObject model = UnityEngine.Object.Instantiate(prefab, veinRoot);
+        model.name = "Cluster";
+        Fit(model.transform, ClusterHeight);
+
+        Material surface = Resources.Load<Material>(MaterialResource);
+        Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (surface != null)
+                renderers[i].sharedMaterial = surface;
+        }
+
+        Collider[] colliders = model.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+            colliders[i].enabled = false;
+
+        if (TryBounds(model.transform, out Bounds bounds))
+        {
+            BoxCollider box = veinRoot.GetComponent<BoxCollider>();
+            if (box != null)
+            {
+                box.center = bounds.center;
+                box.size = bounds.size;
+            }
+        }
+
+        return true;
+    }
+
+    static void Fit(Transform model, float targetHeight)
+    {
+        model.localRotation = Quaternion.identity;
+        model.localScale = Vector3.one;
+        model.localPosition = Vector3.zero;
+        if (!TryBounds(model, out Bounds bounds))
+            return;
+
+        float scale = targetHeight / Mathf.Max(0.001f, bounds.size.y);
+        model.localScale = Vector3.one * scale;
+        if (!TryBounds(model, out bounds))
+            return;
+
+        model.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+    }
+
+    static bool TryBounds(Transform model, out Bounds bounds)
+    {
+        bounds = new Bounds(Vector3.zero, Vector3.zero);
+        Transform space = model.parent != null ? model.parent : model;
+        MeshFilter[] filters = model.GetComponentsInChildren<MeshFilter>(true);
+        bool found = false;
+        for (int i = 0; i < filters.Length; i++)
+        {
+            Mesh mesh = filters[i].sharedMesh;
+            if (mesh == null)
+                continue;
+
+            Vector3 center = mesh.bounds.center;
+            Vector3 extents = mesh.bounds.extents;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 point = center + new Vector3(
+                    (corner & 1) == 0 ? -extents.x : extents.x,
+                    (corner & 2) == 0 ? -extents.y : extents.y,
+                    (corner & 4) == 0 ? -extents.z : extents.z);
+                Vector3 local = space.InverseTransformPoint(filters[i].transform.TransformPoint(point));
+                if (!found)
+                {
+                    bounds = new Bounds(local, Vector3.zero);
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(local);
+                }
+            }
+        }
+
+        return found && bounds.size.y > 0.001f;
     }
 
     void OnEnable()

@@ -94,6 +94,31 @@ public class AmmoMachine : MonoBehaviour
             Destroy(statusMaterial);
     }
 
+    void FixedUpdate()
+    {
+        if (busy)
+            return;
+
+        BoxCollider box = GetComponent<BoxCollider>();
+        if (box == null)
+            return;
+
+        int count = Physics.OverlapBoxNonAlloc(
+            box.bounds.center,
+            box.bounds.extents,
+            overlaps,
+            transform.rotation,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < count; i++)
+        {
+            TryConsume(overlaps[i]);
+            if (busy)
+                return;
+        }
+    }
+
     void OnTriggerEnter(Collider other)
     {
         TryConsume(other);

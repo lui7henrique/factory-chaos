@@ -46,16 +46,50 @@ public static class FurnaceVisual
         };
     }
 
+    const string ModelResource = "Furnace/MeshyFurnace";
+    const string MaterialResource = "Furnace/FurnaceSurface";
+    const float ModelPitch = -90f;
+    const float ModelYaw = 90f;
+    const float TargetHeight = 2.15f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void EnsureImported()
+    {
+        GameObject machine = GameObject.Find("Machine");
+        if (machine == null)
+            return;
+
+        Transform existing = machine.transform.Find("Visual/Model");
+        if (existing != null)
+        {
+            FitToMachine(existing, TargetHeight);
+            PlaceImportedOutput(machine.transform);
+            FurnaceSparks.Ensure(machine.transform);
+            ConveyorVisual.AlignToMachines();
+            return;
+        }
+
+        if (Resources.Load<GameObject>(ModelResource) == null)
+            return;
+
+        Rebuild(machine.transform, RuntimePalette(), BuildMeshes());
+        OreMachine oreMachine = machine.GetComponentInChildren<OreMachine>(true);
+        if (oreMachine != null)
+            oreMachine.AssignStatus(FindLens(machine.transform));
+    }
+
     public static void Rebuild(Transform machineRoot, Palette palette, MeshSet meshes)
     {
         if (machineRoot == null)
             return;
 
-        if (meshes.roof == null)
-            meshes = BuildMeshes();
-
         RemoveGenerated(machineRoot);
         HidePlaceholder(machineRoot);
+        if (TryBuildImported(machineRoot, palette))
+            return;
+
+        if (meshes.roof == null)
+            meshes = BuildMeshes();
 
         Transform visual = Empty(machineRoot, "Visual");
         Transform solids = Empty(machineRoot, "SolidColliders");
@@ -68,6 +102,93 @@ public static class FurnaceVisual
         BuildLamp(machineRoot, palette);
         PlaceInput(machineRoot);
         PlaceOutput(machineRoot);
+    }
+
+    static bool TryBuildImported(Transform machineRoot, Palette palette)
+    {
+        GameObject prefab = Resources.Load<GameObject>(ModelResource);
+        if (prefab == null)
+            return false;
+
+        Transform visual = Empty(machineRoot, "Visual");
+        GameObject model = UnityEngine.Object.Instantiate(prefab, visual);
+        model.name = "Model";
+        Track(model);
+        model.transform.localPosition = Vector3.zero;
+        model.transform.localRotation = Quaternion.Euler(ModelPitch, ModelYaw, 0f);
+        model.transform.localScale = Vector3.one;
+
+        Material surface = Resources.Load<Material>(MaterialResource);
+        Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (surface != null)
+                renderers[i].sharedMaterial = surface;
+        }
+
+        FitToMachine(model.transform, TargetHeight);
+
+        Transform solids = Empty(machineRoot, "SolidColliders");
+        Solid(solids, "Body", new Vector3(0.05f, 0.85f, 0.02f), new Vector3(1.15f, 1.45f, 1.05f));
+        Solid(solids, "InTray", new Vector3(0.94f, 0.72f, 0f), new Vector3(0.62f, 0.08f, 0.82f));
+        Solid(solids, "OutTray", new Vector3(0.08f, 0.7f, 1.08f), new Vector3(0.82f, 0.08f, 0.62f));
+        PlaceInput(machineRoot);
+        PlaceImportedOutput(machineRoot);
+        FurnaceSparks.Ensure(machineRoot);
+        ConveyorVisual.AlignToMachines();
+        return true;
+    }
+
+    static void FitToMachine(Transform model, float targetHeight)
+    {
+        model.localRotation = Quaternion.Euler(ModelPitch, ModelYaw, 0f);
+        model.localScale = Vector3.one;
+        model.localPosition = Vector3.zero;
+        if (!TryParentBounds(model, out Bounds bounds))
+            return;
+
+        float scale = targetHeight / Mathf.Max(0.001f, bounds.size.y);
+        model.localScale = Vector3.one * scale;
+        if (!TryParentBounds(model, out bounds))
+            return;
+
+        model.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+    }
+
+    static bool TryParentBounds(Transform model, out Bounds bounds)
+    {
+        bounds = new Bounds(Vector3.zero, Vector3.zero);
+        Transform space = model.parent != null ? model.parent : model;
+        MeshFilter[] filters = model.GetComponentsInChildren<MeshFilter>(true);
+        bool found = false;
+        for (int i = 0; i < filters.Length; i++)
+        {
+            Mesh mesh = filters[i].sharedMesh;
+            if (mesh == null)
+                continue;
+
+            Vector3 center = mesh.bounds.center;
+            Vector3 extents = mesh.bounds.extents;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 point = center + new Vector3(
+                    (corner & 1) == 0 ? -extents.x : extents.x,
+                    (corner & 2) == 0 ? -extents.y : extents.y,
+                    (corner & 4) == 0 ? -extents.z : extents.z);
+                Vector3 local = space.InverseTransformPoint(filters[i].transform.TransformPoint(point));
+                if (!found)
+                {
+                    bounds = new Bounds(local, Vector3.zero);
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(local);
+                }
+            }
+        }
+
+        return found && bounds.size.y > 0.001f;
     }
 
     public static Renderer FindLens(Transform machineRoot)
@@ -202,6 +323,17 @@ public static class FurnaceVisual
             renderer.enabled = false;
     }
 
+    static void PlaceImportedOutput(Transform machineRoot)
+    {
+        Transform output = machineRoot.Find("Output");
+        if (output == null)
+            return;
+
+        output.localPosition = new Vector3(0.08f, 0.55f, 1.55f);
+        output.localRotation = Quaternion.identity;
+        output.localScale = Vector3.one;
+    }
+
     static void PlaceOutput(Transform machineRoot)
     {
         Transform output = machineRoot.Find("Output");
@@ -230,7 +362,7 @@ public static class FurnaceVisual
 
     static void RemoveGenerated(Transform machineRoot)
     {
-        string[] names = { "Visual", "Visuals", "SolidColliders", "StatusLight", "FireVisual" };
+        string[] names = { "Visual", "Visuals", "SolidColliders", "StatusLight", "FireVisual", "FurnaceSparks" };
         for (int i = 0; i < names.Length; i++)
         {
             Transform child = machineRoot.Find(names[i]);

@@ -18,6 +18,8 @@ public class OreVein : MonoBehaviour
     bool dropWaiting;
     bool spent;
 
+    public GameObject OrePrefab => orePrefab;
+
     public int Reserve => reserve;
     public int Strikes => strikes;
     public int StrikesPerUnit => Mathf.Max(1, strikesPerUnit);

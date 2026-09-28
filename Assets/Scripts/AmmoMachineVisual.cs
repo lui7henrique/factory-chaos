@@ -39,6 +39,38 @@ public static class AmmoMachineVisual
         };
     }
 
+    const string ModelResource = "AmmoPress/MeshyPress";
+    const string MaterialResource = "AmmoPress/PressSurface";
+    const float ModelPitch = -90f;
+    const float ModelYaw = 0f;
+    const float TargetHeight = 2.15f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void EnsureImported()
+    {
+        if (Resources.Load<GameObject>(ModelResource) == null)
+            return;
+
+        AmmoMachine[] machines = UnityEngine.Object.FindObjectsByType<AmmoMachine>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < machines.Length; i++)
+        {
+            Transform root = StationRoot(machines[i].transform);
+            Transform existing = root.Find(VisualsName + "/Model");
+            if (existing != null)
+            {
+                FitToMachine(existing, TargetHeight);
+                Collider[] modelColliders = existing.GetComponentsInChildren<Collider>(true);
+                for (int c = 0; c < modelColliders.Length; c++)
+                    modelColliders[c].enabled = false;
+                PlaceImportedPoints(root);
+                ConveyorVisual.AlignToMachines();
+                continue;
+            }
+
+            Rebuild(root, RuntimePalette());
+        }
+    }
+
     public static void Rebuild(Transform machineRoot, Palette palette)
     {
         if (machineRoot == null)
@@ -51,6 +83,12 @@ public static class AmmoMachineVisual
         Transform old = machineRoot.Find(VisualsName);
         if (old != null)
             DestroyObject(old.gameObject);
+        Transform solids = machineRoot.Find("PressSolids");
+        if (solids != null)
+            DestroyObject(solids.gameObject);
+
+        if (TryBuildImported(machineRoot))
+            return;
 
         Transform visuals = Empty(machineRoot, VisualsName);
         BuildBase(visuals, palette);
@@ -77,6 +115,123 @@ public static class AmmoMachineVisual
             AmmoPressMotion motion = pressHead.gameObject.AddComponent<AmmoPressMotion>();
             motion.Bind(machine, 1.58f, 1.18f);
         }
+    }
+
+    static bool TryBuildImported(Transform machineRoot)
+    {
+        GameObject prefab = Resources.Load<GameObject>(ModelResource);
+        if (prefab == null)
+            return false;
+
+        Transform visuals = Empty(machineRoot, VisualsName);
+        GameObject model = UnityEngine.Object.Instantiate(prefab, visuals);
+        model.name = "Model";
+        Track(model);
+        FitToMachine(model.transform, TargetHeight);
+
+        Material surface = Resources.Load<Material>(MaterialResource);
+        Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (surface != null)
+                renderers[i].sharedMaterial = surface;
+        }
+
+        Collider[] modelColliders = model.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < modelColliders.Length; i++)
+            modelColliders[i].enabled = false;
+
+        Transform solids = Empty(machineRoot, "PressSolids");
+        Solid(solids, "Body", new Vector3(0f, 1.05f, 0f), new Vector3(1.25f, 2f, 1.45f));
+        Solid(solids, "OutTray", new Vector3(-1.05f, 0.2f, 0f), new Vector3(0.55f, 0.28f, 0.55f));
+        PlaceImportedPoints(machineRoot);
+        ConveyorVisual.AlignToMachines();
+        return true;
+    }
+
+    static void PlaceImportedPoints(Transform machineRoot)
+    {
+        Transform input = EnsureInput(machineRoot);
+        Transform output = EnsureOutput(machineRoot);
+        input.localPosition = new Vector3(1.15f, 0.9f, -0.2f);
+        input.localRotation = Quaternion.identity;
+        input.localScale = new Vector3(1.35f, 1f, 1.2f);
+        output.localPosition = new Vector3(-1.2f, 0.62f, -0.2f);
+        output.localRotation = Quaternion.identity;
+        output.localScale = Vector3.one;
+
+        Transform tray = machineRoot.Find("PressSolids/OutTray");
+        if (tray != null)
+            tray.localPosition = new Vector3(-1.05f, 0.2f, -0.2f);
+    }
+
+    static Transform StationRoot(Transform machine)
+    {
+        if (machine.parent != null && machine.name != "AmmoMachine")
+            return machine.parent;
+        return machine;
+    }
+
+    static void FitToMachine(Transform model, float targetHeight)
+    {
+        model.localRotation = Quaternion.Euler(ModelPitch, ModelYaw, 0f);
+        model.localScale = Vector3.one;
+        model.localPosition = Vector3.zero;
+        if (!TryParentBounds(model, out Bounds bounds))
+            return;
+
+        float scale = targetHeight / Mathf.Max(0.001f, bounds.size.y);
+        model.localScale = Vector3.one * scale;
+        if (!TryParentBounds(model, out bounds))
+            return;
+
+        model.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+    }
+
+    static bool TryParentBounds(Transform model, out Bounds bounds)
+    {
+        bounds = new Bounds(Vector3.zero, Vector3.zero);
+        Transform space = model.parent != null ? model.parent : model;
+        MeshFilter[] filters = model.GetComponentsInChildren<MeshFilter>(true);
+        bool found = false;
+        for (int i = 0; i < filters.Length; i++)
+        {
+            Mesh mesh = filters[i].sharedMesh;
+            if (mesh == null)
+                continue;
+
+            Vector3 center = mesh.bounds.center;
+            Vector3 extents = mesh.bounds.extents;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 point = center + new Vector3(
+                    (corner & 1) == 0 ? -extents.x : extents.x,
+                    (corner & 2) == 0 ? -extents.y : extents.y,
+                    (corner & 4) == 0 ? -extents.z : extents.z);
+                Vector3 local = space.InverseTransformPoint(filters[i].transform.TransformPoint(point));
+                if (!found)
+                {
+                    bounds = new Bounds(local, Vector3.zero);
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(local);
+                }
+            }
+        }
+
+        return found && bounds.size.y > 0.001f;
+    }
+
+    static void Solid(Transform parent, string name, Vector3 position, Vector3 size)
+    {
+        GameObject part = new GameObject(name);
+        part.transform.SetParent(parent, false);
+        part.transform.localPosition = position;
+        BoxCollider box = part.AddComponent<BoxCollider>();
+        box.size = size;
+        Track(part);
     }
 
     static void BuildBase(Transform visuals, Palette palette)
