@@ -9,15 +9,15 @@ public class PickaxeVisual : MonoBehaviour
     public const float ImpactTime = 0.62f;
 
     [SerializeField] Transform swingPivot;
-    [SerializeField] Vector3 presentationPosition = new Vector3(0.31f, -0.56f, 0.5f);
-    [SerializeField] Vector3 presentationEuler = new Vector3(12f, -9f, -3f);
-    [SerializeField] float presentationScale = 0.54f;
+    [SerializeField] Vector3 presentationPosition = new Vector3(0.29f, -0.56f, 0.62f);
+    [SerializeField] Vector3 presentationEuler = new Vector3(18f, -3f, 14f);
+    [SerializeField] float presentationScale = 0.62f;
 
     static Palette runtimePalette;
 
     static readonly Quaternion Raised = Quaternion.Euler(-48f, 12f, -8f);
     static readonly Quaternion Impact = Quaternion.Euler(70f, -8f, 4f);
-    static readonly Quaternion StrikeFacing = Quaternion.Euler(0f, 180f, 0f);
+    static readonly Quaternion StrikeFacing = Quaternion.Euler(0f, 245f, 0f);
 
     public Vector3 PresentationPosition => presentationPosition;
     public Vector3 PresentationEuler => presentationEuler;
@@ -32,9 +32,9 @@ public class PickaxeVisual : MonoBehaviour
 
     public void UseHeldPose()
     {
-        presentationPosition = new Vector3(0.31f, -0.56f, 0.5f);
-        presentationEuler = new Vector3(12f, -9f, -3f);
-        presentationScale = 0.54f;
+        presentationPosition = new Vector3(0.29f, -0.56f, 0.62f);
+        presentationEuler = new Vector3(18f, -3f, 14f);
+        presentationScale = 0.62f;
         ApplyPresentation();
         FaceTheStrike();
     }
