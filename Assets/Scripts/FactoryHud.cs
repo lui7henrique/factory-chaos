@@ -283,8 +283,10 @@ public class FactoryHud : MonoBehaviour
         if (selected) Round(rect, Alpha(Selected, Mathf.Lerp(0.11f, 0.3f, 1f - Mathf.Clamp01((Time.time - selectionAt) / 0.22f))), 4f);
         Outline(rect, selected ? Gold : Border, selected ? 2f : 1f, 4f);
         Text(new Rect(rect.x + 9f, rect.y + 5f, 22f, 22f), key.ToString(), labelStyle, selected ? Gold : Muted);
-        Rect icon = new Rect(rect.center.x - 14f, rect.y + 5f, 28f, 30f);
-        if (tool) DrawPickIcon(icon);
+        Rect icon = tool
+            ? new Rect(rect.center.x - 21f, rect.y + 2f, 42f, 38f)
+            : new Rect(rect.center.x - 14f, rect.y + 5f, 28f, 30f);
+        if (tool) DrawPickIcon(icon, selected);
         else if (item != null) DrawItemIcon(icon, item.Kind);
         else Outline(new Rect(icon.center.x - 8f, icon.center.y - 8f, 16f, 16f), Track, 1f, 3f);
         Text(new Rect(rect.x + 6f, rect.y + 43f, rect.width - 12f, 22f), tool ? "Picareta" : item == null ? "Vazio" : ItemName(item.Kind), centerStyle, item == null && !tool ? Muted : Ink);
@@ -520,12 +522,42 @@ public class FactoryHud : MonoBehaviour
     static float Progress(float left, float duration) { return duration <= 0f ? 1f : 1f - Mathf.Clamp01(left / duration); }
     static Color Alpha(Color color, float alpha) { color.a = alpha; return color; }
 
-    static void DrawPickIcon(Rect rect)
+    static void DrawPickIcon(Rect rect, bool selected)
     {
+        Color graphite = new Color32(52, 59, 67, 255);
+        Color iron = new Color32(165, 173, 181, 255);
+        Color wood = new Color32(125, 75, 38, 255);
+        Color woodLight = new Color32(184, 119, 61, 255);
+        Color leather = new Color32(63, 38, 28, 255);
+        Color accent = selected ? Gold : Ink;
+
         Matrix4x4 previous = GUI.matrix;
-        GUI.matrix = RotateIcon(previous, rect.center, 32f);
-        Fill(new Rect(rect.center.x - 3f, rect.y + 7f, 6f, 29f), new Color32(165, 115, 68, 255));
-        Round(new Rect(rect.center.x - 16f, rect.y + 4f, 32f, 8f), Ink, 3f);
+        GUI.matrix = RotateIcon(previous, rect.center, 34f);
+
+        float x = rect.center.x;
+        float top = rect.y + 7f;
+
+        // Handle and wrapped grip sit behind the forged head.
+        Segment(new Vector2(x, top + 3f), new Vector2(x, rect.yMax - 2f), 8f, graphite, 2f);
+        Segment(new Vector2(x, top + 4f), new Vector2(x, rect.yMax - 3f), 5.5f, wood, 1.5f);
+        Segment(new Vector2(x - 1.2f, top + 6f), new Vector2(x - 1.2f, rect.yMax - 8f), 1.2f, woodLight, 0.6f);
+        Segment(new Vector2(x, rect.yMax - 12f), new Vector2(x, rect.yMax - 2f), 8.5f, leather, 2f);
+        Fill(new Rect(x - 4.5f, rect.yMax - 11f, 9f, 1.5f), woodLight);
+        Fill(new Rect(x - 4.5f, rect.yMax - 7f, 9f, 1.5f), woodLight);
+        Fill(new Rect(x - 4.5f, rect.yMax - 3.5f, 9f, 1.5f), woodLight);
+
+        // Asymmetric head: a curved point on the left and a broad chisel on the right.
+        Segment(new Vector2(x - 8f, top + 4f), new Vector2(x + 12f, top + 3f), 9f, graphite, 2.5f);
+        Segment(new Vector2(x - 8f, top + 4f), new Vector2(x - 17f, top + 7f), 7f, graphite, 2f);
+        Segment(new Vector2(x - 17f, top + 7f), new Vector2(x - 23f, top + 12f), 4.5f, graphite, 1.5f);
+        Segment(new Vector2(x - 22f, top + 11f), new Vector2(x - 25f, top + 15f), 2f, accent, 1f);
+        Segment(new Vector2(x + 10f, top + 3f), new Vector2(x + 21f, top + 6f), 9f, graphite, 2f);
+        Segment(new Vector2(x + 20f, top + 5f), new Vector2(x + 24f, top + 7f), 3f, iron, 1f);
+        Segment(new Vector2(x - 16f, top + 4.5f), new Vector2(x + 11f, top + 1.5f), 1.5f, iron, 0.75f);
+
+        Round(new Rect(x - 5f, top - 1f, 10f, 13f), graphite, 2f);
+        Fill(new Rect(x - 5f, top + 1f, 10f, 2f), selected ? Gold : iron);
+        Fill(new Rect(x - 5f, top + 8f, 10f, 2f), iron);
         GUI.matrix = previous;
     }
 
@@ -561,6 +593,17 @@ public class FactoryHud : MonoBehaviour
     {
         Vector3 pivot = new Vector3(center.x, center.y, 0f);
         return matrix * Matrix4x4.Translate(pivot) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, angle)) * Matrix4x4.Translate(-pivot);
+    }
+    static void Segment(Vector2 start, Vector2 end, float thickness, Color color, float radius)
+    {
+        Vector2 delta = end - start;
+        float length = delta.magnitude;
+        if (length <= 0.01f) return;
+        Vector2 center = (start + end) * 0.5f;
+        Matrix4x4 previous = GUI.matrix;
+        GUI.matrix = RotateIcon(previous, center, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+        Round(new Rect(center.x - length * 0.5f, center.y - thickness * 0.5f, length, thickness), color, radius);
+        GUI.matrix = previous;
     }
     static void Fill(Rect rect, Color color) { Round(rect, color, 0f); }
     static void Round(Rect rect, Color color, float radius)
