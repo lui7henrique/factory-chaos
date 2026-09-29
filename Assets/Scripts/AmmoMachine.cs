@@ -11,7 +11,7 @@ public class AmmoMachine : MonoBehaviour
     {
         outputPoint = output;
         ammoPrefab = prefab;
-        statusRenderer = lamp;
+        SetStatusLamp(lamp);
     }
 
     [Header("Process")]
@@ -33,14 +33,17 @@ public class AmmoMachine : MonoBehaviour
     readonly Collider[] overlaps = new Collider[8];
 
     PlayerCarry playerCarry;
-    Material statusMaterial;
+    MaterialPropertyBlock statusBlock;
     readonly Queue<GameObject> pendingProducts = new Queue<GameObject>();
     Coroutine processRoutine;
     bool pressing;
+    bool outputBlocked;
+    float processEnd;
 
     public bool CanTake(Item item)
     {
-        return item != null && item.enabled && item.Kind == ItemKind.Product;
+        return isActiveAndEnabled && ammoPrefab != null && outputPoint != null
+            && item != null && item.enabled && item.Kind == ItemKind.Product;
     }
 
     public bool TryDeposit(Item item)
@@ -53,10 +56,18 @@ public class AmmoMachine : MonoBehaviour
     }
 
     public bool IsPressing => pressing;
+    // Includes the product currently in the press, not loose rounds in the room.
+    public int PendingCount => pendingProducts.Count;
+    public bool IsOutputBlocked => outputBlocked;
+    public float ProcessDuration => processDuration;
+    public float ProcessSecondsLeft => pressing ? Mathf.Max(0f, processEnd - Time.time) : 0f;
 
     public void SetStatusLamp(Renderer lamp)
     {
         statusRenderer = lamp;
+        if (outputBlocked) ShowBlocked();
+        else if (pressing) ShowProcessing();
+        else ShowAvailable();
     }
 
     void Awake()
@@ -66,15 +77,13 @@ public class AmmoMachine : MonoBehaviour
         if (statusRenderer == null)
             statusRenderer = FindBodyRenderer();
 
-        if (statusRenderer != null)
-            statusMaterial = statusRenderer.material;
-
         ShowAvailable();
     }
 
     void OnDisable()
     {
         pressing = false;
+        outputBlocked = false;
         if (processRoutine != null)
         {
             StopCoroutine(processRoutine);
@@ -90,8 +99,11 @@ public class AmmoMachine : MonoBehaviour
 
     void OnDestroy()
     {
-        if (statusMaterial != null)
-            Destroy(statusMaterial);
+        while (pendingProducts.Count > 0)
+        {
+            GameObject product = pendingProducts.Dequeue();
+            if (product != null) Destroy(product);
+        }
     }
 
     void OnTriggerEnter(Collider other)
@@ -110,7 +122,7 @@ public class AmmoMachine : MonoBehaviour
             return;
 
         Item item = other.GetComponentInParent<Item>();
-        if (item == null || !item.enabled || item.Kind != ItemKind.Product)
+        if (!CanTake(item))
             return;
 
         Rigidbody body = other.attachedRigidbody;
@@ -126,6 +138,7 @@ public class AmmoMachine : MonoBehaviour
         GameObject product = body != null ? body.gameObject : item.gameObject;
         PrepareQueuedProduct(product, body);
         pendingProducts.Enqueue(product);
+        GameFeedback.Play(GameFeedback.Cue.Deposit);
         if (processRoutine == null)
             processRoutine = StartCoroutine(ProcessQueue());
     }
@@ -136,6 +149,8 @@ public class AmmoMachine : MonoBehaviour
         {
             GameObject product = pendingProducts.Peek();
             pressing = true;
+            outputBlocked = false;
+            processEnd = Time.time + processDuration;
             ShowProcessing();
             yield return new WaitForSeconds(processDuration);
             pressing = false;
@@ -148,9 +163,12 @@ public class AmmoMachine : MonoBehaviour
 
             while (OutputBlocked())
             {
+                outputBlocked = true;
                 ShowBlocked();
                 yield return null;
             }
+
+            outputBlocked = false;
 
             pendingProducts.Dequeue();
             if (product != null)
@@ -159,6 +177,7 @@ public class AmmoMachine : MonoBehaviour
             GameObject ammo = Instantiate(ammoPrefab, outputPoint.position, outputPoint.rotation);
             ammo.SetActive(true);
             EjectAmmo(ammo);
+            GameFeedback.Notify("MUNIÇÃO PRONTA", "Pegue o cartucho e carregue o canhão.");
         }
 
         processRoutine = null;
@@ -172,8 +191,11 @@ public class AmmoMachine : MonoBehaviour
 
         if (body != null)
         {
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+            if (!body.isKinematic)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
             body.isKinematic = true;
         }
 
@@ -244,7 +266,7 @@ public class AmmoMachine : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Collider overlap = overlaps[i];
-            if (overlap != null && !overlap.transform.IsChildOf(transform.root))
+            if (overlap != null && !overlap.transform.IsChildOf(transform.parent != null ? transform.parent : transform))
                 return true;
         }
 
@@ -253,15 +275,9 @@ public class AmmoMachine : MonoBehaviour
 
     Renderer FindBodyRenderer()
     {
-        Renderer[] renderers = transform.root.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            Collider collider = renderers[i].GetComponent<Collider>();
-            if (collider == null || !collider.isTrigger)
-                return renderers[i];
-        }
-
-        return null;
+        Transform station = transform.parent != null ? transform.parent : transform;
+        Transform lens = station.Find("Visuals/StatusLight/Lens");
+        return lens != null ? lens.GetComponent<Renderer>() : null;
     }
 
     void ShowAvailable()
@@ -281,12 +297,12 @@ public class AmmoMachine : MonoBehaviour
 
     void SetStatusColor(Color color)
     {
-        if (statusMaterial == null)
+        if (statusRenderer == null)
             return;
-
-        statusMaterial.SetColor(BaseColorId, color);
-        statusMaterial.SetColor("_Color", color);
-        statusMaterial.EnableKeyword("_EMISSION");
-        statusMaterial.SetColor(EmissionColorId, color * 0.45f);
+        if (statusBlock == null) statusBlock = new MaterialPropertyBlock();
+        statusRenderer.GetPropertyBlock(statusBlock);
+        statusBlock.SetColor(BaseColorId, color);
+        statusBlock.SetColor(EmissionColorId, color * 0.45f);
+        statusRenderer.SetPropertyBlock(statusBlock);
     }
 }

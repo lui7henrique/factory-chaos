@@ -511,11 +511,3 @@ public static class IndoorFactory
         return new Color(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, 1f);
     }
 }
-
-/// <summary>
-/// Marks a root created by Build Indoor Factory so a later run replaces only that group.
-/// </summary>
-public class IndoorGroup : MonoBehaviour
-{
-    public string groupId;
-}

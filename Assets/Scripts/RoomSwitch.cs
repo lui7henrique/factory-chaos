@@ -11,7 +11,6 @@ public class RoomSwitch : MonoBehaviour
     const string Workshop = "IndoorFactory";
 
     GUIStyle labelStyle;
-    bool loading;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Ensure()
@@ -33,15 +32,14 @@ public class RoomSwitch : MonoBehaviour
 
     void Update()
     {
-        if (loading || Keyboard.current == null || !Keyboard.current.tKey.wasPressedThisFrame)
+        if (GamePauseMenu.IsOpen || Keyboard.current == null || !Keyboard.current.tKey.wasPressedThisFrame)
             return;
 
         string scene = SceneManager.GetActiveScene().name;
         if (scene != Yard && scene != Workshop)
             return;
 
-        loading = true;
-        SceneManager.LoadScene(scene == Workshop ? Yard : Workshop);
+        GamePauseMenu.RequestRoomChange(scene == Workshop ? Yard : Workshop);
     }
 
     void OnEnable()
@@ -56,7 +54,6 @@ public class RoomSwitch : MonoBehaviour
 
     void Loaded(Scene scene, LoadSceneMode mode)
     {
-        loading = false;
         PlaySceneVisuals.Ensure();
         CombatTestSpawner.Ensure();
         MiningBootstrap.Ensure();
@@ -65,6 +62,9 @@ public class RoomSwitch : MonoBehaviour
 
     void OnGUI()
     {
+        if (GamePauseMenu.IsOpen || FactoryHud.IsPresent)
+            return;
+
         if (labelStyle == null)
         {
             labelStyle = new GUIStyle(GUI.skin.label);

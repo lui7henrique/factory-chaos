@@ -10,7 +10,7 @@ A direção compartilhada está em [docs/direcao.md](docs/direcao.md). Quem for 
 2. Abra esta pasta como projeto.
 3. Abra `Assets/Scenes/SampleScene.unity` e dê Play.
 
-O combate de teste (máquina de munição, canhão e alvo) aparece ao dar Play, à direita do galpão.
+A mina e o corte de combate (prensa, canhão e onda 1) aparecem ao dar Play. O objetivo é minerar ferro, fundir lingotes, prensar três cartuchos e defender o túnel.
 
 ## Controles
 
@@ -21,14 +21,15 @@ O combate de teste (máquina de munição, canhão e alvo) aparece ao dar Play, 
 | Pular | Espaço |
 | Olhar | mouse |
 | Pegar ou soltar | E |
-| Picareta / slots | 1, depois 2 3 4 |
-| Depositar na máquina | botão direito |
+| Picareta / slots | 1–4 ou roda do mouse |
+| Minerar | clique esquerdo; segurar repete |
+| Depositar, carregar canhão ou entregar lingote | botão direito, com o item na mão e olhando para o destino |
 | Arremessar | clique esquerdo |
 | Operar o canhão | E, olhando para ele e com as mãos vazias |
 | Mirar e atirar | mouse e clique esquerdo |
 | Sair do canhão | E ou Esc |
-| Soltar o cursor | Esc |
-| Trocar de sala | T |
+| Abrir ou fechar o menu de pausa | Esc |
+| Comparar as salas | T, com confirmação (reinicia o estado) |
 
 ## O que já existe
 
@@ -39,6 +40,9 @@ O combate de teste (máquina de munição, canhão e alvo) aparece ao dar Play, 
 - Máquina de munição: 1 produto vira 1 munição em 2 segundos.
 - Canhão fixo com 3 tiros. Cada tiro tira 20.
 - Onda 1: 50 segundos para preparar munição. Um inimigo sai do túnel à frente. Três tiros derrubam. Se ele chega na fábrica, a rodada acaba.
+- Menu de pausa no Esc, com continuar, controles, confirmação de reinício e configurações de volume, sensibilidade, inversão vertical e HUD compacta. Preferências ficam salvas neste computador.
+- HUD inspirada no Paper, ligada à onda, dinheiro, inventário físico, produção, esteira e canhão. A [auditoria da integração](docs/hud-integration.md) explica os elementos do mockup que foram adaptados ou descartados e os testes realizados.
+- Feedback de coleta, entrega, produção e combate, incluindo sons procedurais, confirmação de acerto, recuo e clarão do canhão. Veja o [registro do refinamento](docs/refinement.md) e sua verificação.
 
 Munição não entra na esteira, não vende na entrega e não entra na máquina de minério.
 

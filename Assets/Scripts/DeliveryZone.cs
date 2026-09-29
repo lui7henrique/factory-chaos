@@ -13,6 +13,18 @@ public class DeliveryZone : MonoBehaviour
     int money;
 
     public int Money => money;
+    public int ValuePerProduct => valuePerProduct;
+
+    public bool TryDeposit(Item item)
+    {
+        if (!isActiveAndEnabled || item == null || !item.enabled || item.Kind != ItemKind.Product) return false;
+        item.enabled = false;
+        money += valuePerProduct;
+        GameFeedback.Notify("ENTREGA CONCLUÍDA", "+$ " + valuePerProduct + " · saldo $ " + money, GameFeedback.Cue.Ready);
+        Rigidbody body = item.GetComponentInParent<Rigidbody>();
+        Destroy(body != null ? body.gameObject : item.gameObject);
+        return true;
+    }
 
     void Awake()
     {
@@ -44,8 +56,6 @@ public class DeliveryZone : MonoBehaviour
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
-        item.enabled = false;
-        money += valuePerProduct;
-        Destroy(body != null ? body.gameObject : item.gameObject);
+        TryDeposit(item);
     }
 }

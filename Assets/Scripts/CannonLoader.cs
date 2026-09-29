@@ -45,10 +45,6 @@ public class CannonLoader : MonoBehaviour
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
-        if (!cannon.TryAddRound())
-            return;
-
-        item.enabled = false;
-        Destroy(body != null ? body.gameObject : item.gameObject);
+        cannon.TryDeposit(item);
     }
 }

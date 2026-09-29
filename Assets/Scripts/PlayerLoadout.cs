@@ -22,6 +22,9 @@ public class PlayerLoadout : MonoBehaviour
     public bool ToolSelected => selected < 0;
     public int SelectedIndex => selected;
     public string DepositPrompt => depositPrompt;
+    public string DepositTitle { get; private set; }
+    public string DepositDetail { get; private set; }
+    public bool DepositAvailable { get; private set; }
 
     public Item SlotItem(int index)
     {
@@ -45,7 +48,9 @@ public class PlayerLoadout : MonoBehaviour
     void Update()
     {
         depositPrompt = null;
-        if (carry == null || !carry.InputEnabled)
+        DepositTitle = DepositDetail = null;
+        DepositAvailable = false;
+        if (carry == null || !carry.InputEnabled || GamePauseMenu.IsOpen)
             return;
 
         ReadSelection();
@@ -55,7 +60,7 @@ public class PlayerLoadout : MonoBehaviour
 
     void ReadSelection()
     {
-        if (Keyboard.current == null)
+        if (Keyboard.current == null || Cursor.lockState != CursorLockMode.Locked)
             return;
 
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
@@ -66,6 +71,11 @@ public class PlayerLoadout : MonoBehaviour
             Select(1);
         else if (Keyboard.current.digit4Key.wasPressedThisFrame)
             Select(2);
+        else if (Mouse.current != null && Mathf.Abs(Mouse.current.scroll.ReadValue().y) > 0.01f)
+        {
+            int direction = Mouse.current.scroll.ReadValue().y > 0f ? -1 : 1;
+            Select((selected + 1 + direction + SlotCount + 1) % (SlotCount + 1) - 1);
+        }
     }
 
     void ReadActions()
@@ -73,10 +83,9 @@ public class PlayerLoadout : MonoBehaviour
         bool locked = Cursor.lockState == CursorLockMode.Locked;
         bool deposit = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame && locked;
         bool throwPressed = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && locked;
-        bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+        bool interact = locked && carry.CanInteractThisFrame && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
 
-        if (deposit)
-            TryDeposit();
+        if (deposit) { TryDeposit(); return; }
 
         if (!ToolSelected && carry.IsHolding && throwPressed)
             ThrowSelected();
@@ -87,38 +96,75 @@ public class PlayerLoadout : MonoBehaviour
     void RefreshPrompt()
     {
         if (Time.time < noticeUntil)
+        {
             depositPrompt = notice;
+            DepositTitle = notice;
+            DepositDetail = "Selecione um espaço ocupado e solte um item.";
+        }
 
         Item item = CurrentItem();
         if (item == null || carry == null || !carry.IsHolding)
             return;
 
-        if (!LookAtMachine(out OreMachine furnace, out AmmoMachine ammo))
-            return;
-
-        if (item.Kind == ItemKind.Ore && furnace != null && furnace.CanTake(item))
-            depositPrompt = "Botão direito — Deposite o minério";
-        else if (item.Kind == ItemKind.Product && ammo != null && ammo.CanTake(item))
-            depositPrompt = "Botão direito — Deposite o lingote";
+        ReadDepositTarget(item, false);
     }
 
     void TryDeposit()
     {
         Item item = CurrentItem();
-        if (item == null || !LookAtMachine(out OreMachine furnace, out AmmoMachine ammo))
+        if (item == null || !carry.IsHolding)
             return;
+        if (ReadDepositTarget(item, true))
+        {
+            slots[selected] = null;
+            carry.ForgetHeld();
+            depositPrompt = null;
+            DepositTitle = DepositDetail = null;
+        }
+        else if (!string.IsNullOrEmpty(DepositTitle)) GameFeedback.Play(GameFeedback.Cue.Warning);
+    }
 
-        bool ore = item.Kind == ItemKind.Ore && furnace != null && furnace.CanTake(item);
-        bool ingot = item.Kind == ItemKind.Product && ammo != null && ammo.CanTake(item);
-        if (!ore && !ingot)
-            return;
-
-        slots[selected] = null;
-        carry.ForgetHeld();
-        if (ore)
-            furnace.TryDeposit(item);
-        else
-            ammo.TryDeposit(item);
+    bool ReadDepositTarget(Item item, bool execute)
+    {
+        if (!Look(3.5f, out RaycastHit hit)) return false;
+        Transform target = hit.collider.transform;
+        OreMachine furnace = FindMachineInput<OreMachine>(target);
+        AmmoMachine press = FindMachineInput<AmmoMachine>(target);
+        CannonController cannon = target.GetComponentInParent<CannonController>();
+        DeliveryZone delivery = FindMachineInput<DeliveryZone>(target);
+        bool accepted = false;
+        if (furnace != null)
+        {
+            DepositAvailable = furnace.CanTake(item);
+            DepositTitle = item.Kind != ItemKind.Ore ? "A FORNALHA ACEITA MINÉRIO"
+                : furnace.IsProcessing ? "AGUARDE A FUNDIÇÃO" : "DEPOSITAR MINÉRIO";
+            DepositDetail = furnace.IsProcessing ? "O ciclo atual precisa terminar." : "1 minério → 1 lingote";
+            if (execute && DepositAvailable) accepted = furnace.TryDeposit(item);
+        }
+        else if (press != null)
+        {
+            DepositAvailable = press.CanTake(item);
+            DepositTitle = DepositAvailable ? "DEPOSITAR LINGOTE" : "A PRENSA ACEITA LINGOTES";
+            DepositDetail = "1 lingote → 1 munição · fila: " + press.PendingCount;
+            if (execute && DepositAvailable) accepted = press.TryDeposit(item);
+        }
+        else if (cannon != null)
+        {
+            DepositAvailable = item.Kind == ItemKind.Ammo && !cannon.IsFull;
+            DepositTitle = item.Kind != ItemKind.Ammo ? "O CANHÃO ACEITA MUNIÇÃO" : cannon.IsFull ? "CANHÃO CHEIO" : "CARREGAR CANHÃO";
+            DepositDetail = cannon.Rounds + " / " + cannon.Capacity + " tiros · um cartucho por carga";
+            if (execute && DepositAvailable) accepted = cannon.TryDeposit(item);
+        }
+        else if (delivery != null)
+        {
+            DepositAvailable = item.Kind == ItemKind.Product;
+            DepositTitle = DepositAvailable ? "ENTREGAR LINGOTE" : "A ENTREGA ACEITA LINGOTES";
+            DepositDetail = "+$ " + delivery.ValuePerProduct + " por lingote · minério e munição não são vendidos";
+            if (execute && DepositAvailable) accepted = delivery.TryDeposit(item);
+        }
+        else return false;
+        depositPrompt = DepositTitle;
+        return accepted;
     }
 
     bool TryStore()
@@ -145,18 +191,24 @@ public class PlayerLoadout : MonoBehaviour
             notice = "Inventário cheio";
             noticeUntil = Time.time + 1.2f;
             depositPrompt = notice;
+            GameFeedback.Notify("INVENTÁRIO CHEIO", "Libere um dos três espaços antes de coletar.", GameFeedback.Cue.Warning, true);
             return true;
         }
 
         slots[index] = item;
         Stow(body);
+        if (selected == index) ShowSelected();
+        GameFeedback.Notify("ITEM GUARDADO", ItemLabel(item.Kind) + " · espaço " + (index + 2), GameFeedback.Cue.Pickup);
         return true;
     }
 
     static void Stow(Rigidbody body)
     {
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
         body.isKinematic = true;
         body.gameObject.SetActive(false);
     }
@@ -192,6 +244,7 @@ public class PlayerLoadout : MonoBehaviour
 
     void Select(int index)
     {
+        if (index < -1 || index >= SlotCount) return;
         if (selected == index)
         {
             ShowSelected();
@@ -231,20 +284,36 @@ public class PlayerLoadout : MonoBehaviour
         if (!Look(3.5f, out RaycastHit hit))
             return false;
 
-        furnace = hit.collider.GetComponentInParent<OreMachine>();
-        if (furnace == null)
-            furnace = hit.collider.transform.root.GetComponentInChildren<OreMachine>();
-
-        ammo = hit.collider.GetComponentInParent<AmmoMachine>();
-        if (ammo == null)
-            ammo = hit.collider.transform.root.GetComponentInChildren<AmmoMachine>();
+        furnace = FindMachineInput<OreMachine>(hit.collider.transform);
+        ammo = FindMachineInput<AmmoMachine>(hit.collider.transform);
 
         return furnace != null || ammo != null;
     }
 
+    // Inputs are direct children of their station, alongside its visible geometry.
+    // Searching the whole scene root can deposit into an unrelated machine indoors.
+    public static T FindMachineInput<T>(Transform hit) where T : Component
+    {
+        for (Transform part = hit; part != null; part = part.parent)
+        {
+            T input = part.GetComponent<T>();
+            if (input != null)
+                return input;
+
+            for (int i = 0; i < part.childCount; i++)
+            {
+                input = part.GetChild(i).GetComponent<T>();
+                if (input != null)
+                    return input;
+            }
+        }
+
+        return null;
+    }
+
     Rigidbody LookAtItem()
     {
-        if (!Look(carry != null ? 3f : 3f, out RaycastHit hit))
+        if (!Look(carry != null ? carry.PickupRange : 3f, out RaycastHit hit))
             return null;
 
         Rigidbody body = hit.rigidbody;
@@ -274,7 +343,7 @@ public class PlayerLoadout : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Collider col = hits[i].collider;
-            if (col == null || col.transform.IsChildOf(transform))
+            if (col == null || col.transform.IsChildOf(transform) || carry != null && carry.IsCarrying(hits[i].rigidbody))
                 continue;
 
             if (hits[i].distance < nearest)
@@ -287,4 +356,6 @@ public class PlayerLoadout : MonoBehaviour
 
         return found;
     }
+
+    public static string ItemLabel(ItemKind kind) => kind == ItemKind.Ore ? "Minério" : kind == ItemKind.Product ? "Lingote" : "Munição";
 }

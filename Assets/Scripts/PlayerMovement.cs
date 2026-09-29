@@ -32,7 +32,10 @@ public class PlayerMovement : MonoBehaviour
     float pitch;
     float verticalVelocity;
     bool inputEnabled = true;
-    int ignoreEscapeFrame = -1;
+    Vector3 planarVelocity;
+    float groundedUntil = -1f;
+    float jumpUntil = -1f;
+    const float JumpGrace = 0.1f;
 
     void Awake()
     {
@@ -51,25 +54,22 @@ public class PlayerMovement : MonoBehaviour
     public void SetInputEnabled(bool enabled)
     {
         inputEnabled = enabled;
-    }
-
-    public void IgnoreEscapeThisFrame()
-    {
-        ignoreEscapeFrame = Time.frameCount;
+        if (!enabled) { planarVelocity = Vector3.zero; jumpUntil = -1f; groundedUntil = -1f; }
     }
 
     void Update()
     {
+        if (GamePauseMenu.IsOpen)
+        {
+            jumpUntil = -1f;
+            return;
+        }
+
         if (!inputEnabled)
         {
             ApplyGravity();
             return;
         }
-
-        if (Keyboard.current != null
-            && Keyboard.current.escapeKey.wasPressedThisFrame
-            && ignoreEscapeFrame != Time.frameCount)
-            ToggleCursor();
 
         Look();
         Move();
@@ -81,9 +81,10 @@ public class PlayerMovement : MonoBehaviour
             return;
 
         Vector2 delta = Mouse.current.delta.ReadValue();
-        transform.Rotate(0f, delta.x * lookSensitivity, 0f);
+        float sensitivity = lookSensitivity * GamePreferences.Sensitivity;
+        transform.Rotate(0f, delta.x * sensitivity, 0f);
 
-        pitch = Mathf.Clamp(pitch - delta.y * lookSensitivity, minPitch, maxPitch);
+        pitch = Mathf.Clamp(pitch - delta.y * sensitivity * (GamePreferences.InvertY ? -1f : 1f), minPitch, maxPitch);
         if (cameraTransform != null)
             cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
@@ -95,18 +96,27 @@ public class PlayerMovement : MonoBehaviour
         if (move.sqrMagnitude > 1f)
             move.Normalize();
 
-        if (controller.isGrounded && verticalVelocity < 0f)
+        if (controller.isGrounded && verticalVelocity <= 0f)
+        {
             verticalVelocity = -2f;
-
-        if (controller.isGrounded && JumpPressed())
+            groundedUntil = Time.time + JumpGrace;
+        }
+        if (JumpPressed()) jumpUntil = Time.time + JumpGrace;
+        if (Time.time < groundedUntil && Time.time < jumpUntil)
+        {
             verticalVelocity = jumpSpeed;
+            jumpUntil = groundedUntil = -1f;
+        }
 
         verticalVelocity += gravity * Time.deltaTime;
 
         float speed = SprintHeld() ? sprintSpeed : moveSpeed;
-        Vector3 velocity = move * speed;
+        float acceleration = input.sqrMagnitude > 0f ? 45f : 65f;
+        planarVelocity = Vector3.MoveTowards(planarVelocity, move * speed, acceleration * Time.deltaTime);
+        Vector3 velocity = planarVelocity;
         velocity.y = verticalVelocity;
-        controller.Move(velocity * Time.deltaTime);
+        CollisionFlags flags = controller.Move(velocity * Time.deltaTime);
+        if ((flags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
     }
 
     void ApplyGravity()
@@ -145,10 +155,4 @@ public class PlayerMovement : MonoBehaviour
         return Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
     }
 
-    void ToggleCursor()
-    {
-        bool locked = Cursor.lockState == CursorLockMode.Locked;
-        Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = locked;
-    }
 }

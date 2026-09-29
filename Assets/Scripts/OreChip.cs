@@ -45,7 +45,10 @@ public class OreChip : MonoBehaviour
 
             Collider collider = chip.GetComponent<Collider>();
             if (collider != null)
-                DestroyImmediate(collider);
+            {
+                collider.enabled = false;
+                Destroy(collider);
+            }
 
             Vector3 spray = (normal + Random.insideUnitSphere * 0.65f).normalized * Random.Range(1.4f, 2.6f);
             chip.AddComponent<OreChip>().Launch(spray, 0.35f, material);

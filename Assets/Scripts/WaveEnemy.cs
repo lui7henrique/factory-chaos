@@ -13,9 +13,12 @@ public class WaveEnemy : MonoBehaviour
     static readonly int ColorId = Shader.PropertyToID("_Color");
     const float FlashDuration = 0.12f;
 
-    Renderer bodyRenderer;
-    Material bodyMaterial;
-    Color bodyColor = new Color(0.28f, 0.3f, 0.33f);
+    Renderer[] renderers;
+    Color[] colors;
+    MaterialPropertyBlock block;
+    Transform bodyVisual, leftLeg, rightLeg, leftArm, rightArm;
+    Quaternion deathRotation;
+    float deathStarted;
     float health;
     float flash;
     bool dead;
@@ -29,36 +32,28 @@ public class WaveEnemy : MonoBehaviour
     public void Configure(float goalZ, Renderer body)
     {
         stopZ = goalZ;
-        bodyRenderer = body;
-        if (bodyMaterial != null)
-            Destroy(bodyMaterial);
-
-        bodyMaterial = null;
-        if (bodyRenderer == null)
-            return;
-
-        bodyMaterial = bodyRenderer.material;
-        if (bodyMaterial.HasProperty(BaseColorId))
-            bodyColor = bodyMaterial.GetColor(BaseColorId);
+        CacheVisuals();
     }
 
     void Awake()
     {
         health = maxHealth;
-        if (bodyRenderer == null)
-            bodyRenderer = GetComponentInChildren<Renderer>();
-        if (bodyRenderer != null)
-        {
-            bodyMaterial = bodyRenderer.material;
-            if (bodyMaterial.HasProperty(BaseColorId))
-                bodyColor = bodyMaterial.GetColor(BaseColorId);
-        }
+        CacheVisuals();
     }
 
-    void OnDestroy()
+    void CacheVisuals()
     {
-        if (bodyMaterial != null)
-            Destroy(bodyMaterial);
+        renderers = GetComponentsInChildren<Renderer>();
+        colors = new Color[renderers.Length];
+        block = new MaterialPropertyBlock();
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Material material = renderers[i].sharedMaterial;
+            colors[i] = material != null && material.HasProperty(BaseColorId) ? material.GetColor(BaseColorId) : Color.gray;
+        }
+        bodyVisual = transform.Find("Body");
+        leftLeg = transform.Find("LegL"); rightLeg = transform.Find("LegR");
+        leftArm = transform.Find("ArmL"); rightArm = transform.Find("ArmR");
     }
 
     public void TakeDamage(float amount)
@@ -74,30 +69,33 @@ public class WaveEnemy : MonoBehaviour
 
     void Update()
     {
+        if (dead)
+        {
+            float t = Mathf.SmoothStep(0f, 1f, (Time.time - deathStarted) / 0.32f);
+            transform.rotation = deathRotation * Quaternion.Euler(80f * t, 0f, 0f);
+            return;
+        }
         if (!dead && !stopped && transform.position.z > stopZ)
         {
-            transform.position += Vector3.back * (speed * Time.deltaTime);
-            Transform visual = transform.Find("Body");
-            if (visual != null)
+            Vector3 position = transform.position;
+            position.z = Mathf.Max(stopZ, position.z - speed * Time.deltaTime);
+            transform.position = position;
+            float step = Mathf.Sin(Time.time * 8f);
+            if (bodyVisual != null)
             {
-                float bob = Mathf.Sin(Time.time * 8f) * 0.04f;
-                Vector3 local = visual.localPosition;
-                local.y = 0.85f + bob;
-                visual.localPosition = local;
+                Vector3 local = bodyVisual.localPosition;
+                local.y = 0.85f + Mathf.Abs(step) * 0.035f;
+                bodyVisual.localPosition = local;
             }
+            if (leftLeg != null) leftLeg.localRotation = Quaternion.Euler(step * 18f, 0f, 0f);
+            if (rightLeg != null) rightLeg.localRotation = Quaternion.Euler(-step * 18f, 0f, 0f);
+            if (leftArm != null) leftArm.localRotation = Quaternion.Euler(-step * 12f, 0f, -8f);
+            if (rightArm != null) rightArm.localRotation = Quaternion.Euler(step * 12f, 0f, 8f);
         }
-
-        if (bodyMaterial == null || dead)
-            return;
-
         if (flash > 0f)
         {
             flash -= Time.deltaTime;
-            Paint(Color.Lerp(bodyColor, Color.white, Mathf.Clamp01(flash / FlashDuration)));
-        }
-        else
-        {
-            Paint(bodyColor);
+            Paint(Mathf.Clamp01(flash / FlashDuration), false);
         }
     }
 
@@ -105,20 +103,28 @@ public class WaveEnemy : MonoBehaviour
     {
         dead = true;
         stopped = true;
-        Paint(new Color(0.16f, 0.15f, 0.15f));
-        transform.rotation = Quaternion.Euler(80f, 0f, 0f);
+        Paint(0f, true);
+        deathRotation = transform.rotation;
+        deathStarted = Time.time;
 
         Collider[] colliders = GetComponentsInChildren<Collider>();
         for (int i = 0; i < colliders.Length; i++)
             colliders[i].enabled = false;
     }
 
-    void Paint(Color color)
+    void Paint(float flashAmount, bool fallen)
     {
-        if (bodyMaterial == null)
-            return;
-
-        bodyMaterial.SetColor(BaseColorId, color);
-        bodyMaterial.SetColor(ColorId, color);
+        if (renderers == null) return;
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] == null) continue;
+            Color color = fallen ? colors[i] * 0.45f : Color.Lerp(colors[i], Color.white, flashAmount);
+            color.a = 1f;
+            renderers[i].GetPropertyBlock(block);
+            block.SetColor(BaseColorId, color);
+            block.SetColor(ColorId, color);
+            if (fallen) block.SetColor("_EmissionColor", Color.black);
+            renderers[i].SetPropertyBlock(block);
+        }
     }
 }

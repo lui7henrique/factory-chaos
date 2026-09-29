@@ -10,7 +10,7 @@ public class PlayerMining : MonoBehaviour
 {
     [SerializeField] float range = 2.5f;
     [SerializeField] float strikeInterval = 0.45f;
-    [SerializeField] float swingDuration = 1.15f;
+    [SerializeField] float swingDuration = 0.8f;
     [SerializeField] Transform cameraTransform;
 
     readonly RaycastHit[] hits = new RaycastHit[16];
@@ -65,7 +65,7 @@ public class PlayerMining : MonoBehaviour
 
         bool handsFree = carry == null || !carry.IsHolding;
         bool tool = loadout != null && loadout.ToolSelected;
-        bool blocked = !inputEnabled || !handsFree || !tool || carry != null && !carry.InputEnabled;
+        bool blocked = GamePauseMenu.IsOpen || !inputEnabled || !handsFree || !tool || carry != null && !carry.InputEnabled;
         if (pickaxe != null)
             pickaxe.gameObject.SetActive(!blocked);
 
@@ -87,19 +87,15 @@ public class PlayerMining : MonoBehaviour
             && Mouse.current.leftButton.isPressed
             && Cursor.lockState == CursorLockMode.Locked;
 
-        if (!holdingButton)
-        {
-            CancelSwing();
-            return;
-        }
-
-        if (!swinging && Time.time >= nextSwingTime)
+        // A tap commits one strike; holding repeats after recovery. Releasing the
+        // mouse must not erase an animation that has already started.
+        if (holdingButton && !swinging && Time.time >= nextSwingTime)
             BeginSwing();
 
         if (!swinging)
             return;
 
-        float motion = Mathf.Max(swingDuration, 1.15f);
+        float motion = Mathf.Max(swingDuration, 0.3f);
         float amount = motion <= 0f ? 1f : (Time.time - swingStart) / motion;
         if (pickaxe != null)
             pickaxe.SetCycle(Mathf.Clamp01(amount));
@@ -125,6 +121,7 @@ public class PlayerMining : MonoBehaviour
             return;
 
         aimed.ApplyStrike();
+        GameFeedback.Play(GameFeedback.Cue.Mine);
         Material chip = null;
         Renderer renderer = aimed.GetComponentInChildren<Renderer>();
         if (renderer != null)
