@@ -7,17 +7,13 @@ public static class PickaxeVisualMenu
     const string SourceMaterialPath = "Assets/Materials/Machine.mat";
     const string WoodPath = "Assets/Materials/PickaxeWood.mat";
     const string GripPath = "Assets/Materials/PickaxeGrip.mat";
-    const string IronPath = "Assets/Materials/PickaxeIron.mat";
-    const string RingPath = "Assets/Materials/PickaxeRing.mat";
-    const string SkinPath = "Assets/Materials/PickaxeSkin.mat";
+    const string WrapPath = "Assets/Materials/PickaxeWrap.mat";
     const string MeshFolder = "Assets/Meshes";
     const string PrefabPath = "Assets/Prefabs/PickaxeVisual.prefab";
 
-    static readonly Color Wood = new Color(0.588f, 0.376f, 0.224f, 1f);
-    static readonly Color Grip = new Color(0.286f, 0.192f, 0.153f, 1f);
-    static readonly Color Iron = new Color(0.659f, 0.706f, 0.769f, 1f);
-    static readonly Color Ring = new Color(0.957f, 0.745f, 0.196f, 1f);
-    static readonly Color Skin = new Color(0.82f, 0.58f, 0.42f, 1f);
+    static readonly Color Wood = new Color(0.49f, 0.29f, 0.14f, 1f);
+    static readonly Color Grip = new Color(0.20f, 0.12f, 0.085f, 1f);
+    static readonly Color Wrap = new Color(0.34f, 0.19f, 0.11f, 1f);
 
     [MenuItem("GameObject/Factory Chaos/Setup Pickaxe Visual")]
     static void SetupPickaxeVisual()
@@ -130,9 +126,13 @@ public static class PickaxeVisualMenu
         {
             handle = SaveMesh(MeshFolder + "/PickaxeHandle.asset", built.handle),
             grip = SaveMesh(MeshFolder + "/PickaxeGrip.asset", built.grip),
-            ring = SaveMesh(MeshFolder + "/PickaxeRing.asset", built.ring),
+            gripBands = SaveMesh(MeshFolder + "/PickaxeGripBands.asset", built.gripBands),
+            buttCap = SaveMesh(MeshFolder + "/PickaxeButtCap.asset", built.buttCap),
+            collars = SaveMesh(MeshFolder + "/PickaxeCollars.asset", built.collars),
             socket = SaveMesh(MeshFolder + "/PickaxeSocket.asset", built.socket),
             head = SaveMesh(MeshFolder + "/PickaxeHead.asset", built.head),
+            pickEdge = SaveMesh(MeshFolder + "/PickaxePointEdge.asset", built.pickEdge),
+            chiselEdge = SaveMesh(MeshFolder + "/PickaxeChiselEdge.asset", built.chiselEdge),
             peg = SaveMesh(MeshFolder + "/PickaxePeg.asset", built.peg)
         };
     }
@@ -163,10 +163,16 @@ public static class PickaxeVisualMenu
         {
             wood = Material(WoodPath, Wood, 0.12f, 0f),
             grip = Material(GripPath, Grip, 0.08f, 0f),
-            iron = Material(IronPath, Iron, 0.18f, 0.12f),
-            ring = Material(RingPath, Ring, 0.12f, 0f),
-            skin = Material(SkinPath, Skin, 0.08f, 0f)
+            wrap = Material(WrapPath, Wrap, 0.06f, 0f),
+            iron = SharedMaterial(ArtMaterials.IronPath, ArtPalette.Iron, 0.22f, 0.32f),
+            darkIron = SharedMaterial(ArtMaterials.GraphitePath, ArtPalette.Graphite, 0.12f, 0.18f)
         };
+    }
+
+    static Material SharedMaterial(string path, Color color, float smoothness, float metallic)
+    {
+        Material shared = AssetDatabase.LoadAssetAtPath<Material>(path);
+        return shared != null ? shared : Material(path, color, smoothness, metallic);
     }
 
     static Material Material(string path, Color color, float smoothness, float metallic)
