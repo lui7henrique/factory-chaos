@@ -19,6 +19,7 @@ public class FactoryHud : MonoBehaviour
     static readonly Color Selected = new Color32(255, 201, 40, 27);
 
     static FactoryHud instance;
+    static Texture2D pickaxeIcon;
     public static bool IsPresent => instance != null && instance.isActiveAndEnabled;
 
     DeliveryZone delivery;
@@ -52,7 +53,7 @@ public class FactoryHud : MonoBehaviour
     float crosshairActivity;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { instance = null; }
+    static void ResetStatics() { instance = null; pickaxeIcon = null; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void Ensure()
@@ -284,7 +285,7 @@ public class FactoryHud : MonoBehaviour
         Outline(rect, selected ? Gold : Border, selected ? 2f : 1f, 4f);
         Text(new Rect(rect.x + 9f, rect.y + 5f, 22f, 22f), key.ToString(), labelStyle, selected ? Gold : Muted);
         Rect icon = tool
-            ? new Rect(rect.center.x - 21f, rect.y + 2f, 42f, 38f)
+            ? new Rect(rect.center.x - 23f, rect.y + 1f, 46f, 40f)
             : new Rect(rect.center.x - 14f, rect.y + 5f, 28f, 30f);
         if (tool) DrawPickIcon(icon, selected);
         else if (item != null) DrawItemIcon(icon, item.Kind);
@@ -524,6 +525,19 @@ public class FactoryHud : MonoBehaviour
 
     static void DrawPickIcon(Rect rect, bool selected)
     {
+        if (pickaxeIcon == null)
+            pickaxeIcon = Resources.Load<Texture2D>("UI/PickaxeInventoryIcon");
+
+        if (pickaxeIcon != null)
+        {
+            Color previousColor = GUI.color;
+            GUI.color = selected ? Color.white : new Color(0.92f, 0.94f, 0.97f, 0.94f);
+            GUI.DrawTexture(rect, pickaxeIcon, ScaleMode.ScaleToFit, true);
+            GUI.color = previousColor;
+            return;
+        }
+
+        // Keep a lightweight vector fallback for builds missing the UI texture.
         Color graphite = new Color32(52, 59, 67, 255);
         Color iron = new Color32(165, 173, 181, 255);
         Color wood = new Color32(125, 75, 38, 255);
