@@ -118,6 +118,169 @@ public static class CannonVisual
 
         BindController(cannonRoot, yaw, pitch, muzzle, sight);
         BindFx(cannonRoot, barrelVisual, lampLens);
+        ApplyImported(cannonRoot);
+    }
+
+    const string CannonModelResource = "Cannon/MeshyCannon";
+    const string CannonMaterialResource = "Cannon/CannonSurface";
+    const float CannonPitch = -90f;
+    const float CannonYaw = -90f;
+    const float CannonHeight = 1.8f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void EnsureImported()
+    {
+        if (Resources.Load<GameObject>(CannonModelResource) == null)
+            return;
+
+        CannonController[] cannons = UnityEngine.Object.FindObjectsByType<CannonController>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < cannons.Length; i++)
+        {
+            if (cannons[i] != null)
+                ApplyImported(cannons[i].transform);
+        }
+    }
+
+    static void ApplyImported(Transform cannonRoot)
+    {
+        GameObject prefab = Resources.Load<GameObject>(CannonModelResource);
+        if (prefab == null || cannonRoot == null)
+            return;
+
+        HideNamed(cannonRoot, BaseVisualName);
+        HideNamed(cannonRoot, SupportVisualName);
+        HideNamed(cannonRoot, LoadingTrayName);
+        HideNamed(cannonRoot, StatusLightName);
+        HideNamed(cannonRoot, BarrelVisualName);
+
+        DestroyNow(cannonRoot.Find("ImportedVisual"));
+        DestroyNow(cannonRoot.Find("CannonBody"));
+
+        Transform visual = Empty(cannonRoot, "ImportedVisual");
+        GameObject model = UnityEngine.Object.Instantiate(prefab, visual);
+        model.name = "Model";
+        Track(model);
+        FitCannon(model.transform, CannonHeight);
+
+        Material surface = Resources.Load<Material>(CannonMaterialResource);
+        Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (surface != null)
+                renderers[i].sharedMaterial = surface;
+        }
+
+        if (!TryCannonBounds(model.transform, out Bounds bounds))
+            return;
+
+        Transform pitch = cannonRoot.Find(YawPivotName + "/" + PitchPivotName);
+        Transform yaw = cannonRoot.Find(YawPivotName);
+        if (pitch != null)
+        {
+            Transform muzzle = pitch.Find(MuzzlePointName);
+            if (muzzle != null)
+            {
+                Vector3 tip = cannonRoot.TransformPoint(new Vector3(bounds.center.x, bounds.min.y + bounds.size.y * 0.62f, bounds.max.z - 0.08f));
+                muzzle.position = tip;
+                muzzle.localRotation = Quaternion.identity;
+            }
+
+            Transform sight = pitch.Find(SightName);
+            if (sight != null)
+            {
+                Vector3 eye = cannonRoot.TransformPoint(new Vector3(bounds.center.x, bounds.min.y + bounds.size.y * 0.72f, bounds.min.z - 0.45f));
+                sight.position = eye;
+                sight.localRotation = Quaternion.identity;
+            }
+        }
+
+        Transform input = cannonRoot.Find(InputName);
+        if (input != null)
+            input.localPosition = new Vector3(bounds.center.x, 1.05f, bounds.min.z - 0.15f);
+
+        CannonYawFollow follow = visual.GetComponent<CannonYawFollow>();
+        if (follow == null)
+            follow = visual.gameObject.AddComponent<CannonYawFollow>();
+        follow.Bind(yaw);
+
+        Transform solids = Empty(cannonRoot, "CannonBody");
+        GameObject body = new GameObject("Collider");
+        body.transform.SetParent(solids, false);
+        body.transform.localPosition = new Vector3(bounds.center.x, bounds.center.y, bounds.center.z - bounds.size.z * 0.08f);
+        BoxCollider box = body.AddComponent<BoxCollider>();
+        box.size = new Vector3(bounds.size.x * 0.72f, bounds.size.y * 0.75f, bounds.size.z * 0.42f);
+        Track(body);
+        Track(solids.gameObject);
+    }
+
+    static void FitCannon(Transform model, float targetHeight)
+    {
+        model.localRotation = Quaternion.Euler(CannonPitch, CannonYaw, 0f);
+        model.localScale = Vector3.one;
+        model.localPosition = Vector3.zero;
+        if (!TryCannonBounds(model, out Bounds bounds))
+            return;
+
+        float scale = targetHeight / Mathf.Max(0.001f, bounds.size.y);
+        model.localScale = Vector3.one * scale;
+        if (!TryCannonBounds(model, out bounds))
+            return;
+
+        model.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+    }
+
+    static bool TryCannonBounds(Transform model, out Bounds bounds)
+    {
+        bounds = new Bounds(Vector3.zero, Vector3.zero);
+        Transform space = model.parent != null ? model.parent : model;
+        MeshFilter[] filters = model.GetComponentsInChildren<MeshFilter>(true);
+        bool found = false;
+        for (int i = 0; i < filters.Length; i++)
+        {
+            Mesh mesh = filters[i].sharedMesh;
+            if (mesh == null)
+                continue;
+
+            Vector3 center = mesh.bounds.center;
+            Vector3 extents = mesh.bounds.extents;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 point = center + new Vector3(
+                    (corner & 1) == 0 ? -extents.x : extents.x,
+                    (corner & 2) == 0 ? -extents.y : extents.y,
+                    (corner & 4) == 0 ? -extents.z : extents.z);
+                Vector3 local = space.InverseTransformPoint(filters[i].transform.TransformPoint(point));
+                if (!found)
+                {
+                    bounds = new Bounds(local, Vector3.zero);
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(local);
+                }
+            }
+        }
+
+        return found && bounds.size.y > 0.001f;
+    }
+
+    static void HideNamed(Transform cannonRoot, string name)
+    {
+        Transform[] all = cannonRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i].name != name)
+                continue;
+
+            Renderer[] renderers = all[i].GetComponentsInChildren<Renderer>(true);
+            for (int r = 0; r < renderers.Length; r++)
+                renderers[r].enabled = false;
+
+            Collider[] colliders = all[i].GetComponentsInChildren<Collider>(true);
+            for (int c = 0; c < colliders.Length; c++)
+                colliders[c].enabled = false;
+        }
     }
 
     static void BuildBase(Transform parent, Palette palette, MeshSet meshes)
@@ -429,6 +592,12 @@ public static class CannonVisual
             DestroyObjectComponent(collider);
     }
 
+    static void DestroyNow(Transform child)
+    {
+        if (child != null)
+            UnityEngine.Object.DestroyImmediate(child.gameObject);
+    }
+
     static void DestroyObject(GameObject go)
     {
         if (Destroyed != null)
@@ -623,5 +792,23 @@ public static class CannonVisual
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
+    }
+}
+
+public class CannonYawFollow : MonoBehaviour
+{
+    Transform yaw;
+
+    public void Bind(Transform yawPivot)
+    {
+        yaw = yawPivot;
+    }
+
+    void LateUpdate()
+    {
+        if (yaw == null)
+            return;
+
+        transform.localRotation = Quaternion.Euler(0f, yaw.localEulerAngles.y, 0f);
     }
 }

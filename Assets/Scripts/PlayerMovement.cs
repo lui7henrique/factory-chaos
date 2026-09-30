@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Prototype first-person movement. WASD moves relative to facing, the mouse looks around,
-/// and gravity is applied through CharacterController.Move.
+/// Prototype first-person movement. WASD moves relative to facing, Shift sprints,
+/// the mouse looks around, and gravity is applied through CharacterController.Move.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour

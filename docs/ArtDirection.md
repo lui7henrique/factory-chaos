@@ -80,7 +80,7 @@ Se a fornalha já tem um filho `Visual`, o Play não reconstrói. Rode o menu de
 
 ## Fábrica interna
 
-A cena `IndoorFactory` é a oficina jogável dentro da mina. `FactorySite` com `Indoor` impede que `PlaySceneVisuals`, `MiningBootstrap` e `CombatTestSpawner` plantem grama, veio ou máquinas do pátio. A casca usa estrutura `#343A40`, painel `#686D72`, concreto `#73716B`, rocha `#514D4B` e marcação `#F4BE32`. As máquinas continuam com a paleta da fornalha. Luz de teto quente, cerca de 3500 K, sem sol atravessando o teto. O comando é GameObject > Factory Chaos > Build Indoor Factory.
+A cena `IndoorFactory` é a oficina jogável dentro da mina. `FactorySite` com `Indoor` impede que `PlaySceneVisuals`, `MiningBootstrap` e `CombatTestSpawner` plantem grama, veio ou máquinas do pátio. A casca usa os materiais de `Assets/Art/Materials`: parede `#858078`, grafite `#343B43`, concreto, rocha e marcação `#D5A63A`. Sem parafusos e sem tubos finos. Fornalha, prensa e canhão usam a mesma paleta, sem malha nova. Luz de preenchimento pêssego, fog exponencial leve, sem sol atravessando o teto. O comando é GameObject > Factory Chaos > Build Indoor Factory.
 
 ## Fora desta amostra
 
