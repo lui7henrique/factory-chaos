@@ -244,7 +244,7 @@ public class AmmoMachine : MonoBehaviour
         if (body == null)
             return;
 
-        Vector3 direction = outputPoint.right;
+        Vector3 direction = outputPoint.forward;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.001f)
             return;

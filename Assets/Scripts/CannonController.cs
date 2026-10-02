@@ -106,6 +106,7 @@ public class CannonController : MonoBehaviour
         if (operating)
         {
             Aim();
+            PlaceThirdPerson();
 
             if (Mouse.current != null
                 && Mouse.current.leftButton.wasPressedThisFrame
@@ -147,9 +148,8 @@ public class CannonController : MonoBehaviour
             playerCarry.SetInputEnabled(false);
         SetMiningEnabled(false);
 
-        cameraTransform.SetParent(sight, false);
-        cameraTransform.localPosition = Vector3.zero;
-        cameraTransform.localRotation = Quaternion.identity;
+        cameraTransform.SetParent(transform, true);
+        PlaceThirdPerson();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         operating = true;
@@ -208,6 +208,39 @@ public class CannonController : MonoBehaviour
             yawPivot.localRotation = Quaternion.Euler(0f, yaw, 0f);
         if (pitchPivot != null)
             pitchPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    }
+
+    void PlaceThirdPerson()
+    {
+        if (cameraTransform == null)
+            return;
+
+        Vector3 flat = BarrelForward();
+        flat.y = 0f;
+        if (flat.sqrMagnitude < 0.001f)
+            flat = transform.forward;
+        flat.Normalize();
+
+        Vector3 muzzlePoint = muzzle != null ? muzzle.position : transform.position + Vector3.up * 1.2f;
+        Vector3 look = muzzlePoint + flat * 8f + Vector3.up * (pitch * 0.06f);
+        Vector3 cam = transform.position - flat * 4.6f + Vector3.up * 2.7f;
+        cameraTransform.position = cam;
+        Vector3 toLook = look - cam;
+        if (toLook.sqrMagnitude > 0.001f)
+            cameraTransform.rotation = Quaternion.LookRotation(toLook, Vector3.up);
+    }
+
+    Vector3 BarrelForward()
+    {
+        if (muzzle != null)
+        {
+            Vector3 along = muzzle.position - transform.position;
+            along.y = 0f;
+            if (along.sqrMagnitude > 0.04f)
+                return along.normalized;
+        }
+
+        return transform.forward;
     }
 
     void Fire()

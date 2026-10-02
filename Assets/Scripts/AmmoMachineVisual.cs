@@ -153,16 +153,39 @@ public static class AmmoMachineVisual
     {
         Transform input = EnsureInput(machineRoot);
         Transform output = EnsureOutput(machineRoot);
-        input.localPosition = new Vector3(1.15f, 0.9f, -0.2f);
+        input.localPosition = new Vector3(0.15f, 0.95f, 0.15f);
         input.localRotation = Quaternion.identity;
-        input.localScale = new Vector3(1.35f, 1f, 1.2f);
-        output.localPosition = new Vector3(-1.2f, 0.62f, -0.2f);
-        output.localRotation = Quaternion.identity;
+        input.localScale = new Vector3(1.2f, 0.9f, 1.15f);
+        output.localPosition = new Vector3(0.15f, 0.82f, -1.45f);
+        output.localRotation = Quaternion.Euler(0f, 180f, 0f);
         output.localScale = Vector3.one;
+        EnsureChute(output);
 
         Transform tray = machineRoot.Find("PressSolids/OutTray");
         if (tray != null)
-            tray.localPosition = new Vector3(-1.05f, 0.2f, -0.2f);
+            tray.localPosition = new Vector3(0.15f, 0.38f, -1.2f);
+    }
+
+    static void EnsureChute(Transform output)
+    {
+        Transform mark = output.Find("Chute");
+        if (mark == null)
+        {
+            GameObject chute = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            chute.name = "Chute";
+            chute.transform.SetParent(output, false);
+            Collider collider = chute.GetComponent<Collider>();
+            if (collider != null)
+                UnityEngine.Object.Destroy(collider);
+            mark = chute.transform;
+            Renderer renderer = chute.GetComponent<Renderer>();
+            if (renderer != null)
+                renderer.sharedMaterial = MakeMaterial(new Color(0.835f, 0.651f, 0.227f), 0.08f, false);
+        }
+
+        mark.localPosition = new Vector3(0f, -0.16f, 0.15f);
+        mark.localRotation = Quaternion.identity;
+        mark.localScale = new Vector3(0.62f, 0.08f, 0.42f);
     }
 
     static Transform StationRoot(Transform machine)

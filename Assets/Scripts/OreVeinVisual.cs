@@ -147,6 +147,7 @@ public class OreVeinVisual : MonoBehaviour
     const string ModelResource = "OreVein/MeshyCluster";
     const string MaterialResource = "OreVein/CrystalSurface";
     const float ClusterHeight = 1.15f;
+    const float ModelPitch = -90f;
 
     void Start()
     {
@@ -201,7 +202,7 @@ public class OreVeinVisual : MonoBehaviour
 
     static void Fit(Transform model, float targetHeight)
     {
-        model.localRotation = Quaternion.identity;
+        model.localRotation = Quaternion.Euler(ModelPitch, 0f, 0f);
         model.localScale = Vector3.one;
         model.localPosition = Vector3.zero;
         if (!TryBounds(model, out Bounds bounds))
