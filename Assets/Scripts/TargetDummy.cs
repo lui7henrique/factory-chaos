@@ -12,7 +12,7 @@ public class TargetDummy : MonoBehaviour
     static readonly Color DestroyedColor = new Color(0.18f, 0.16f, 0.16f);
     const float FlashDuration = 0.12f;
 
-    Material boardMaterial;
+    MaterialPropertyBlock block;
     Color baseColor = new Color(0.75f, 0.18f, 0.16f);
     float health;
     float flash;
@@ -21,6 +21,7 @@ public class TargetDummy : MonoBehaviour
     public void Configure(Renderer boardRenderer)
     {
         board = boardRenderer;
+        CacheBoard();
     }
 
     public float Health => health;
@@ -34,18 +35,15 @@ public class TargetDummy : MonoBehaviour
         if (board == null)
             board = GetComponentInChildren<Renderer>();
 
-        if (board != null)
-        {
-            boardMaterial = board.material;
-            if (boardMaterial.HasProperty(BaseColorId))
-                baseColor = boardMaterial.GetColor(BaseColorId);
-        }
+        CacheBoard();
     }
 
-    void OnDestroy()
+    void CacheBoard()
     {
-        if (boardMaterial != null)
-            Destroy(boardMaterial);
+        if (board == null) return;
+        block = new MaterialPropertyBlock();
+        Material material = board.sharedMaterial;
+        if (material != null && material.HasProperty(BaseColorId)) baseColor = material.GetColor(BaseColorId);
     }
 
     public void TakeDamage(float amount)
@@ -62,7 +60,7 @@ public class TargetDummy : MonoBehaviour
 
     void Update()
     {
-        if (boardMaterial == null || destroyed)
+        if (board == null || destroyed)
             return;
 
         if (flash > 0f)
@@ -92,10 +90,12 @@ public class TargetDummy : MonoBehaviour
 
     void SetBoardColor(Color color)
     {
-        if (boardMaterial == null)
+        if (board == null)
             return;
-
-        boardMaterial.SetColor(BaseColorId, color);
-        boardMaterial.SetColor("_Color", color);
+        if (block == null) block = new MaterialPropertyBlock();
+        board.GetPropertyBlock(block);
+        block.SetColor(BaseColorId, color);
+        block.SetColor("_Color", color);
+        board.SetPropertyBlock(block);
     }
 }

@@ -27,13 +27,14 @@ public class ConveyorBelt : MonoBehaviour
 
     PlayerCarry playerCarry;
     Renderer[] statusRenderers;
-    Material[] statusMaterials;
+    MaterialPropertyBlock statusBlock;
     Color[] runningColors;
     GUIStyle labelStyle;
     float nextSwitchTime;
     bool jammed;
 
     public bool IsJammed => jammed;
+    public float JamSecondsLeft => jammed ? Mathf.Max(0f, nextSwitchTime - Time.time) : 0f;
 
     void Awake()
     {
@@ -42,18 +43,6 @@ public class ConveyorBelt : MonoBehaviour
         playerCarry = FindAnyObjectByType<PlayerCarry>();
         CacheStatus();
         nextSwitchTime = Time.time + NextRunTime();
-    }
-
-    void OnDestroy()
-    {
-        if (statusMaterials == null)
-            return;
-
-        for (int i = 0; i < statusMaterials.Length; i++)
-        {
-            if (statusMaterials[i] != null)
-                Destroy(statusMaterials[i]);
-        }
     }
 
     void Update()
@@ -77,7 +66,7 @@ public class ConveyorBelt : MonoBehaviour
         foreach (KeyValuePair<Rigidbody, int> pair in overlaps)
         {
             Rigidbody body = pair.Key;
-            if (body == null)
+            if (body == null || !body.gameObject.activeInHierarchy)
             {
                 expired.Add(body);
                 continue;
@@ -124,6 +113,7 @@ public class ConveyorBelt : MonoBehaviour
         if (jammed)
         {
             nextSwitchTime = Time.time + jamDuration;
+            GameFeedback.Notify("ESTEIRA TRAVADA", "Retomada automática em " + Mathf.CeilToInt(jamDuration) + "s.", GameFeedback.Cue.Warning, true);
             return;
         }
 
@@ -161,50 +151,42 @@ public class ConveyorBelt : MonoBehaviour
         }
 
         statusRenderers = statusRendererList.ToArray();
-        statusMaterials = new Material[statusRenderers.Length];
+        statusBlock = new MaterialPropertyBlock();
         runningColors = new Color[statusRenderers.Length];
         for (int i = 0; i < statusRenderers.Length; i++)
         {
-            statusMaterials[i] = statusRenderers[i].material;
-            runningColors[i] = statusMaterials[i].GetColor(BaseColorId);
+            Material material = statusRenderers[i].sharedMaterial;
+            runningColors[i] = material != null && material.HasProperty(BaseColorId) ? material.GetColor(BaseColorId) : Color.gray;
         }
     }
 
     void PaintRunning()
     {
-        if (statusMaterials == null)
+        if (statusRenderers == null)
             return;
 
-        for (int i = 0; i < statusMaterials.Length; i++)
-            PaintOne(statusMaterials[i], runningColors[i], false);
+        for (int i = 0; i < statusRenderers.Length; i++)
+            PaintOne(statusRenderers[i], runningColors[i], false);
     }
 
     void Paint(Color color, bool emit)
     {
-        if (statusMaterials == null)
+        if (statusRenderers == null)
             return;
 
-        for (int i = 0; i < statusMaterials.Length; i++)
-            PaintOne(statusMaterials[i], color, emit);
+        for (int i = 0; i < statusRenderers.Length; i++)
+            PaintOne(statusRenderers[i], color, emit);
     }
 
-    static void PaintOne(Material material, Color color, bool emit)
+    void PaintOne(Renderer renderer, Color color, bool emit)
     {
-        if (material == null)
+        if (renderer == null)
             return;
-
-        material.SetColor(BaseColorId, color);
-        material.SetColor(ColorId, color);
-        if (emit)
-        {
-            material.EnableKeyword("_EMISSION");
-            material.SetColor(EmissionColorId, color * 0.55f);
-        }
-        else
-        {
-            material.DisableKeyword("_EMISSION");
-            material.SetColor(EmissionColorId, Color.black);
-        }
+        renderer.GetPropertyBlock(statusBlock);
+        statusBlock.SetColor(BaseColorId, color);
+        statusBlock.SetColor(ColorId, color);
+        statusBlock.SetColor(EmissionColorId, emit ? color * 0.55f : Color.black);
+        renderer.SetPropertyBlock(statusBlock);
     }
 
     void ChangeOverlap(Collider other, int delta)
@@ -226,7 +208,7 @@ public class ConveyorBelt : MonoBehaviour
 
     void OnGUI()
     {
-        if (!jammed)
+        if (!jammed || GamePauseMenu.IsOpen || FactoryHud.IsPresent)
             return;
 
         if (labelStyle == null)

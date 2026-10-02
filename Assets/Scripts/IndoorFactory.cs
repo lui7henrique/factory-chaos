@@ -594,11 +594,3 @@ public static class IndoorFactory
         return child.transform;
     }
 }
-
-/// <summary>
-/// Marks a root created by Build Indoor Factory so a later run replaces only that group.
-/// </summary>
-public class IndoorGroup : MonoBehaviour
-{
-    public string groupId;
-}

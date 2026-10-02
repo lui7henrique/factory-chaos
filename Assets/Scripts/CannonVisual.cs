@@ -206,9 +206,9 @@ public static class CannonVisual
         Transform solids = Empty(cannonRoot, "CannonBody");
         GameObject body = new GameObject("Collider");
         body.transform.SetParent(solids, false);
-        body.transform.localPosition = new Vector3(bounds.center.x, bounds.size.y * 0.28f, bounds.center.z - bounds.size.z * 0.08f);
+        body.transform.localPosition = new Vector3(bounds.center.x, bounds.center.y, bounds.center.z - bounds.size.z * 0.08f);
         BoxCollider box = body.AddComponent<BoxCollider>();
-        box.size = new Vector3(bounds.size.x * 0.72f, bounds.size.y * 0.55f, bounds.size.z * 0.42f);
+        box.size = new Vector3(bounds.size.x * 0.72f, bounds.size.y * 0.75f, bounds.size.z * 0.42f);
         Track(body);
         Track(solids.gameObject);
     }

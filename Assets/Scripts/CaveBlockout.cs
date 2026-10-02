@@ -31,11 +31,11 @@ public static class CaveBlockout
         if (GameObject.Find("CaveShell") != null)
             return;
 
-        Material rock = Lit(new Color(0.45f, 0.4f, 0.46f), false);
-        Material rockWarm = Lit(new Color(0.55f, 0.45f, 0.36f), false);
-        Material rockDark = Lit(new Color(0.28f, 0.25f, 0.3f), false);
-        Material floor = Lit(new Color(0.42f, 0.39f, 0.36f), false);
-        Material floorDark = Lit(new Color(0.33f, 0.31f, 0.29f), false);
+        Material rock = Lit(new Color(0.36f, 0.35f, 0.34f), false);
+        Material rockWarm = Lit(new Color(0.41f, 0.38f, 0.34f), false);
+        Material rockDark = Lit(new Color(0.29f, 0.285f, 0.28f), false);
+        Material floor = Lit(new Color(0.40f, 0.385f, 0.36f), false);
+        Material floorDark = Lit(new Color(0.375f, 0.36f, 0.34f), false);
         Material stripe = Lit(new Color(0.86f, 0.58f, 0.16f), false);
         Material wood = Lit(new Color(0.62f, 0.4f, 0.22f), false);
         Material woodDark = Lit(new Color(0.4f, 0.25f, 0.14f), false);
@@ -50,6 +50,7 @@ public static class CaveBlockout
 
         BuildHall(root, rock, rockWarm, rockDark, floor, floorDark);
         BuildTunnel(root, rockDark, out Light eye);
+        BuildTunnelFrame(root, ArtMaterials.Runtime());
         PaintStripes(root, stripe);
         PlaceTimber(root, wood, woodDark);
         HangLamp(root, new Vector3(-2.1f, 3.15f, 2.4f), shade, bulb, wood);
@@ -67,14 +68,22 @@ public static class CaveBlockout
         root.transform.SetParent(parent, false);
         root.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, 180f, 0f));
 
-        Material skin = Lit(new Color(0.62f, 0.44f, 0.32f), false);
-        Material cloth = Lit(new Color(0.18f, 0.42f, 0.46f), false);
-        Material eye = Lit(new Color(0.95f, 0.22f, 0.12f), true);
+        ArtMaterials.Set palette = ArtMaterials.Runtime();
+        Material skin = palette.iron;
+        Material cloth = palette.graphite;
+        Material eye = palette.fire;
 
         GameObject body = Cube(root.transform, "Body", new Vector3(0f, 0.85f, 0f), Quaternion.identity, new Vector3(0.72f, 0.9f, 0.46f), cloth, true);
         Cube(root.transform, "Head", new Vector3(0f, 1.52f, 0.02f), Quaternion.identity, new Vector3(0.4f, 0.38f, 0.38f), skin, false);
         Cube(root.transform, "EyeL", new Vector3(-0.1f, 1.56f, 0.2f), Quaternion.identity, new Vector3(0.08f, 0.08f, 0.05f), eye, false);
         Cube(root.transform, "EyeR", new Vector3(0.1f, 1.56f, 0.2f), Quaternion.identity, new Vector3(0.08f, 0.08f, 0.05f), eye, false);
+        Cube(root.transform, "ShoulderL", new Vector3(-0.47f, 1.17f, 0f), Quaternion.Euler(0f, 0f, -12f), new Vector3(0.3f, 0.32f, 0.5f), palette.marking, false);
+        Cube(root.transform, "ShoulderR", new Vector3(0.47f, 1.17f, 0f), Quaternion.Euler(0f, 0f, 12f), new Vector3(0.3f, 0.32f, 0.5f), palette.marking, false);
+        Cube(root.transform, "ArmL", new Vector3(-0.5f, 0.81f, 0.02f), Quaternion.identity, new Vector3(0.22f, 0.58f, 0.26f), skin, false);
+        Cube(root.transform, "ArmR", new Vector3(0.5f, 0.81f, 0.02f), Quaternion.identity, new Vector3(0.22f, 0.58f, 0.26f), skin, false);
+        Cube(root.transform, "LegL", new Vector3(-0.22f, 0.26f, 0.04f), Quaternion.identity, new Vector3(0.28f, 0.52f, 0.38f), cloth, false);
+        Cube(root.transform, "LegR", new Vector3(0.22f, 0.26f, 0.04f), Quaternion.identity, new Vector3(0.28f, 0.52f, 0.38f), cloth, false);
+        Cube(root.transform, "ChestPlate", new Vector3(0f, 0.98f, 0.25f), Quaternion.Euler(0f, 0f, 45f), new Vector3(0.22f, 0.22f, 0.05f), eye, false);
 
         WaveEnemy enemy = root.AddComponent<WaveEnemy>();
         enemy.Configure(stopZ, body.GetComponent<Renderer>());
@@ -98,11 +107,13 @@ public static class CaveBlockout
 
     static void DressAtmosphere()
     {
-        RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.34f, 0.28f, 0.3f);
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(0.4f, 0.42f, 0.44f);
+        RenderSettings.ambientEquatorColor = new Color(0.34f, 0.315f, 0.28f);
+        RenderSettings.ambientGroundColor = new Color(0.2f, 0.19f, 0.18f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.2f, 0.16f, 0.22f);
+        RenderSettings.fogColor = new Color(0.18f, 0.185f, 0.19f);
         RenderSettings.fogStartDistance = 14f;
         RenderSettings.fogEndDistance = 36f;
 
@@ -112,7 +123,7 @@ public static class CaveBlockout
             if (lights[i] == null || lights[i].type != LightType.Directional)
                 continue;
 
-            lights[i].intensity = 0.22f;
+            lights[i].intensity = 0.3f;
             lights[i].color = new Color(0.72f, 0.78f, 0.92f);
             lights[i].shadows = LightShadows.Soft;
         }
@@ -293,6 +304,21 @@ public static class CaveBlockout
     {
         Cube(parent, "Stripe", new Vector3(0.2f, 0.045f, 2.4f), Quaternion.identity, new Vector3(0.22f, 0.02f, 12f), stripe, false);
         Cube(parent, "Stripe", new Vector3(-1.4f, 0.045f, 1.15f), Quaternion.identity, new Vector3(9.5f, 0.02f, 0.22f), stripe, false);
+    }
+
+    static void BuildTunnelFrame(Transform parent, ArtMaterials.Set palette)
+    {
+        float center = (GapX0 + GapX1) * 0.5f;
+        for (int side = 0; side < 2; side++)
+        {
+            float x = side == 0 ? GapX0 - 0.16f : GapX1 + 0.16f;
+            Cube(parent, "TunnelPortal", new Vector3(x, 1.4f, MaxZ - 0.05f), Quaternion.identity, new Vector3(0.3f, 2.8f, 0.4f), palette.graphite, false);
+            Cube(parent, "PortalLamp", new Vector3(x, 1.72f, MaxZ - 0.28f), Quaternion.identity, new Vector3(0.1f, 0.38f, 0.06f), palette.fireCore, false);
+            Cube(parent, "PortalFoot", new Vector3(x, 0.26f, MaxZ - 0.08f), Quaternion.identity, new Vector3(0.38f, 0.5f, 0.44f), palette.marking, false);
+        }
+        Cube(parent, "PortalHeader", new Vector3(center, 2.85f, MaxZ - 0.08f), Quaternion.identity, new Vector3(3.35f, 0.27f, 0.45f), palette.graphite, false);
+        for (int i = 0; i < 7; i++)
+            Cube(parent, "ThresholdMark", new Vector3(GapX0 + 0.18f + i * 0.38f, 0.05f, BreachZ), Quaternion.Euler(0f, -25f, 0f), new Vector3(0.19f, 0.025f, 0.45f), palette.marking, false);
     }
 
     static void PlaceTimber(Transform parent, Material wood, Material woodDark)

@@ -45,6 +45,8 @@ public class PlayerCarry : MonoBehaviour
     public bool ThrewThisFrame { get; private set; }
 
     public bool InputEnabled => inputEnabled;
+    public bool CanInteractThisFrame => ignoreInteractFrame != Time.frameCount;
+    public float PickupRange => pickupRange;
 
     public bool IsCarrying(Rigidbody body)
     {
@@ -64,7 +66,7 @@ public class PlayerCarry : MonoBehaviour
     void Update()
     {
         ThrewThisFrame = false;
-        if (!inputEnabled)
+        if (!inputEnabled || GamePauseMenu.IsOpen)
             return;
 
         if (GetComponent<PlayerLoadout>() != null)
@@ -93,7 +95,7 @@ public class PlayerCarry : MonoBehaviour
 
     void LateUpdate()
     {
-        if (heldBody == null || cameraTransform == null)
+        if (heldBody == null || cameraTransform == null || GamePauseMenu.IsOpen)
             return;
 
         Vector3 origin = cameraTransform.position;
@@ -119,8 +121,11 @@ public class PlayerCarry : MonoBehaviour
         if (body == null)
             return;
 
+        if (heldBody == body) return;
+        if (heldBody != null) Pocket();
         body.gameObject.SetActive(true);
         Pickup(body);
+        LateUpdate();
     }
 
     public void Pocket()
@@ -178,13 +183,10 @@ public class PlayerCarry : MonoBehaviour
                 continue;
 
             Rigidbody body = hits[i].rigidbody;
-            if (body == null || body.isKinematic)
-                continue;
-
             if (hits[i].distance < nearest)
             {
                 nearest = hits[i].distance;
-                target = body;
+                target = body != null && !body.isKinematic ? body : null;
             }
         }
 
@@ -196,8 +198,11 @@ public class PlayerCarry : MonoBehaviour
     {
         heldBody = body;
         heldColliders = body.GetComponentsInChildren<Collider>();
-        heldBody.linearVelocity = Vector3.zero;
-        heldBody.angularVelocity = Vector3.zero;
+        if (!heldBody.isKinematic)
+        {
+            heldBody.linearVelocity = Vector3.zero;
+            heldBody.angularVelocity = Vector3.zero;
+        }
         heldBody.isKinematic = true;
         SetIgnorePlayer(heldColliders, true);
     }
@@ -210,6 +215,7 @@ public class PlayerCarry : MonoBehaviour
         heldColliders = null;
 
         body.isKinematic = false;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
         body.linearVelocity = velocity;
         body.angularVelocity = Vector3.zero;
         body.WakeUp();

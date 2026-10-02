@@ -12,10 +12,12 @@ public class Projectile : MonoBehaviour
     float dieAt;
     bool spent;
     Vector3 previousPosition;
+    Collider[] ignoredColliders;
 
     public void Launch(Vector3 velocity, float shotDamage, float lifetime, Collider[] ignore)
     {
         damage = shotDamage;
+        ignoredColliders = ignore;
         dieAt = Time.time + lifetime;
 
         Rigidbody body = GetComponent<Rigidbody>();
@@ -61,7 +63,7 @@ public class Projectile : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 Collider collider = hits[i].collider;
-                if (collider == null || collider.gameObject == gameObject)
+                if (IsIgnored(collider))
                     continue;
 
                 if (hits[i].distance < nearest)
@@ -94,18 +96,34 @@ public class Projectile : MonoBehaviour
 
     void Hit(Collider collider)
     {
-        if (spent || collider == null)
+        if (spent || IsIgnored(collider))
             return;
 
         spent = true;
         WaveEnemy enemy = collider.GetComponentInParent<WaveEnemy>();
         if (enemy != null)
+        {
             enemy.TakeDamage(damage);
+            GameFeedback.ConfirmHit(enemy.IsDead);
+        }
 
         TargetDummy target = collider.GetComponentInParent<TargetDummy>();
         if (target != null)
+        {
             target.TakeDamage(damage);
+            GameFeedback.ConfirmHit(false);
+        }
+
+        OreChip.Burst(transform.position, -transform.forward, ArtMaterials.Runtime().marking);
 
         Destroy(gameObject);
+    }
+
+    bool IsIgnored(Collider collider)
+    {
+        if (collider == null || collider.gameObject == gameObject) return true;
+        if (ignoredColliders != null)
+            for (int i = 0; i < ignoredColliders.Length; i++) if (ignoredColliders[i] == collider) return true;
+        return false;
     }
 }

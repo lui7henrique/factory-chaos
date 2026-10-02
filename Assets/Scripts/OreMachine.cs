@@ -20,13 +20,18 @@ public class OreMachine : MonoBehaviour
     static readonly Color ProcessingColor = new Color(1f, 0.749f, 0.212f);
 
     PlayerCarry playerCarry;
-    Material statusMaterial;
+    MaterialPropertyBlock statusBlock;
     bool busy;
     float processEnd;
+    Coroutine processRoutine;
+    float remainingOnDisable;
+    readonly Collider[] outputOverlaps = new Collider[16];
+    bool outputBlocked;
 
     public bool CanTake(Item item)
     {
-        return !busy && item != null && item.enabled && item.Kind == ItemKind.Ore;
+        return isActiveAndEnabled && productPrefab != null && outputPoint != null
+            && !busy && item != null && item.enabled && item.Kind == ItemKind.Ore;
     }
 
     public bool TryDeposit(Item item)
@@ -34,11 +39,14 @@ public class OreMachine : MonoBehaviour
         if (!CanTake(item))
             return false;
 
-        Accept(item.gameObject);
+        item.enabled = false;
+        Rigidbody body = item.GetComponentInParent<Rigidbody>();
+        Accept(body != null ? body.gameObject : item.gameObject);
         return true;
     }
 
     public bool IsProcessing => busy;
+    public bool IsOutputBlocked => outputBlocked;
     public float ProcessDuration => processDuration;
     public float ProcessSecondsLeft => busy ? Mathf.Max(0f, processEnd - Time.time) : 0f;
 
@@ -48,15 +56,12 @@ public class OreMachine : MonoBehaviour
             outputPoint = output;
         if (product != null)
             productPrefab = product;
+        if (statusRenderer == null) AssignStatus(FindBodyRenderer());
     }
 
     public void AssignStatus(Renderer renderer)
     {
         statusRenderer = renderer;
-        if (statusMaterial != null)
-            Destroy(statusMaterial);
-
-        statusMaterial = renderer != null ? renderer.material : null;
         if (busy)
             ShowProcessing();
         else
@@ -70,16 +75,21 @@ public class OreMachine : MonoBehaviour
         if (statusRenderer == null)
             statusRenderer = FindBodyRenderer();
 
-        if (statusRenderer != null)
-            statusMaterial = statusRenderer.material;
-
         ShowAvailable();
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
-        if (statusMaterial != null)
-            Destroy(statusMaterial);
+        remainingOnDisable = Mathf.Max(0f, processEnd - Time.time);
+        if (processRoutine != null) StopCoroutine(processRoutine);
+        processRoutine = null;
+    }
+
+    void OnEnable()
+    {
+        if (!busy || processRoutine != null) return;
+        processEnd = Time.time + remainingOnDisable;
+        processRoutine = StartCoroutine(Process());
     }
 
     void OnTriggerEnter(Collider other)
@@ -98,14 +108,14 @@ public class OreMachine : MonoBehaviour
             return;
 
         Item item = other.GetComponentInParent<Item>();
-        if (item == null || item.Kind != ItemKind.Ore)
+        if (!CanTake(item))
             return;
 
         Rigidbody body = other.attachedRigidbody;
         if (playerCarry != null && playerCarry.IsCarrying(body))
             return;
 
-        Accept(body != null ? body.gameObject : item.gameObject);
+        TryDeposit(item);
     }
 
     void Accept(GameObject target)
@@ -114,33 +124,49 @@ public class OreMachine : MonoBehaviour
         processEnd = Time.time + processDuration;
         Destroy(target);
         ShowProcessing();
-        StartCoroutine(Process());
+        GameFeedback.Play(GameFeedback.Cue.Deposit);
+        processRoutine = StartCoroutine(Process());
     }
 
     IEnumerator Process()
     {
-        yield return new WaitForSeconds(processDuration);
+        yield return new WaitForSeconds(Mathf.Max(0f, processEnd - Time.time));
+
+        while (OutputBlocked())
+        {
+            outputBlocked = true;
+            SetStatusColor(new Color(1f, 0.42f, 0.17f));
+            yield return null;
+        }
+        outputBlocked = false;
 
         if (productPrefab != null && outputPoint != null)
-            Instantiate(productPrefab, outputPoint.position, outputPoint.rotation);
+        {
+            GameObject product = Instantiate(productPrefab, outputPoint.position, outputPoint.rotation);
+            product.SetActive(true);
+            GameFeedback.Notify("LINGOTE PRONTO", "Leve à prensa para produzir munição ou à entrega para vender.");
+        }
         else
             Debug.LogWarning("OreMachine needs a product prefab and an output point.", this);
 
         busy = false;
+        processRoutine = null;
         ShowAvailable();
     }
 
     Renderer FindBodyRenderer()
     {
-        Renderer[] renderers = transform.root.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            Collider collider = renderers[i].GetComponent<Collider>();
-            if (collider == null || !collider.isTrigger)
-                return renderers[i];
-        }
+        return FurnaceVisual.FindLens(transform.parent != null ? transform.parent : transform);
+    }
 
-        return null;
+    bool OutputBlocked()
+    {
+        if (outputPoint == null) return false;
+        int count = Physics.OverlapSphereNonAlloc(outputPoint.position, 0.26f, outputOverlaps,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
+            if (outputOverlaps[i] != null && outputOverlaps[i].GetComponentInParent<Item>() != null) return true;
+        return false;
     }
 
     void ShowAvailable()
@@ -155,11 +181,12 @@ public class OreMachine : MonoBehaviour
 
     void SetStatusColor(Color color)
     {
-        if (statusMaterial == null)
+        if (statusRenderer == null)
             return;
-
-        statusMaterial.SetColor(BaseColorId, color);
-        statusMaterial.EnableKeyword("_EMISSION");
-        statusMaterial.SetColor(EmissionColorId, color * 0.65f);
+        if (statusBlock == null) statusBlock = new MaterialPropertyBlock();
+        statusRenderer.GetPropertyBlock(statusBlock);
+        statusBlock.SetColor(BaseColorId, color);
+        statusBlock.SetColor(EmissionColorId, color * 0.65f);
+        statusRenderer.SetPropertyBlock(statusBlock);
     }
 }

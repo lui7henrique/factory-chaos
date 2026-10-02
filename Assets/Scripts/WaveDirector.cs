@@ -23,9 +23,11 @@ public class WaveDirector : MonoBehaviour
     WaveEnemy enemy;
     Phase phase = Phase.Preparing;
     float secondsLeft;
+    int lastWarning = -1;
 
     public Phase Current => phase;
     public float SecondsLeft => secondsLeft;
+    public float PreparationDuration => prepSeconds;
     public WaveEnemy Enemy => enemy;
 
     public void Configure(Vector3 spawnPoint, float breachZ, Light eye)
@@ -47,6 +49,12 @@ public class WaveDirector : MonoBehaviour
         if (phase == Phase.Preparing)
         {
             secondsLeft = Mathf.Max(0f, secondsLeft - Time.deltaTime);
+            int seconds = Mathf.CeilToInt(secondsLeft);
+            if (seconds > 0 && seconds <= 5 && seconds != lastWarning)
+            {
+                lastWarning = seconds;
+                GameFeedback.Play(GameFeedback.Cue.Warning);
+            }
             if (secondsLeft <= 0f)
                 Release();
             return;
@@ -58,6 +66,7 @@ public class WaveDirector : MonoBehaviour
         if (enemy.IsDead)
         {
             phase = Phase.Cleared;
+            GameFeedback.Notify("ENTRADA DEFENDIDA", "O inimigo foi derrubado. A fábrica está segura.", GameFeedback.Cue.Victory);
             SetEye(0.15f);
             return;
         }
@@ -65,6 +74,7 @@ public class WaveDirector : MonoBehaviour
         if (enemy.HasArrived)
         {
             phase = Phase.Breached;
+            GameFeedback.Notify("FÁBRICA INVADIDA", "Abra o menu com ESC para tentar novamente.", GameFeedback.Cue.Warning, true);
             SetEye(1.6f);
         }
     }
@@ -74,6 +84,7 @@ public class WaveDirector : MonoBehaviour
         phase = Phase.Incoming;
         secondsLeft = 0f;
         SetEye(1.4f);
+        GameFeedback.Notify("INIMIGO NO TÚNEL", "Opere o canhão e defenda a entrada!", GameFeedback.Cue.Warning, true);
 
         GameObject body = CaveBlockout.CreateEnemy(transform, spawn, stopZ);
         enemy = body.GetComponent<WaveEnemy>();

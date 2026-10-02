@@ -16,8 +16,9 @@ public class CannonVisualFx : MonoBehaviour
     static readonly Color LampOn = new Color(0.349f, 0.937f, 0.380f, 1f);
     static readonly Color LampOff = new Color(0.12f, 0.2f, 0.14f, 1f);
 
-    const float RecoilDistance = 0.07f;
-    const float RecoilDuration = 0.09f;
+    const float RecoilDistance = 0.14f;
+    const float RecoilDuration = 0.22f;
+    Light muzzleFlash;
 
     public void Bind(Transform barrel, Renderer lamp)
     {
@@ -37,10 +38,26 @@ public class CannonVisualFx : MonoBehaviour
 
         barrelVisual.localPosition = barrelRestLocal + new Vector3(0f, 0f, -RecoilDistance);
         recoilUntil = Time.time + RecoilDuration;
+        if (muzzleFlash == null)
+        {
+            Transform muzzle = transform.Find("YawPivot/PitchPivot/MuzzlePoint");
+            if (muzzle != null)
+            {
+                GameObject flash = new GameObject("MuzzleFlash");
+                flash.transform.SetParent(muzzle, false);
+                flash.transform.localPosition = Vector3.forward * 0.2f;
+                muzzleFlash = flash.AddComponent<Light>();
+                muzzleFlash.color = new Color(1f, 0.63f, 0.22f);
+                muzzleFlash.range = 4f;
+                muzzleFlash.shadows = LightShadows.None;
+            }
+        }
+        if (muzzleFlash != null) { muzzleFlash.enabled = true; muzzleFlash.intensity = 3f; }
     }
 
     void LateUpdate()
     {
+        if (muzzleFlash != null && Time.time > recoilUntil - RecoilDuration + 0.055f) muzzleFlash.enabled = false;
         if (barrelVisual != null && recoilUntil > 0f)
         {
             if (Time.time >= recoilUntil)

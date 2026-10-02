@@ -41,6 +41,18 @@ public class CannonController : MonoBehaviour
     bool operating;
     bool showPrompt;
     float emptyUntil;
+    float nextShotTime;
+    public float ShotRecovery => Mathf.Clamp01((nextShotTime - Time.time) / 0.28f);
+
+    public bool TryDeposit(Item item)
+    {
+        if (!isActiveAndEnabled || item == null || !item.enabled || item.Kind != ItemKind.Ammo || IsFull) return false;
+        if (!TryAddRound()) return false;
+        item.enabled = false;
+        Rigidbody body = item.GetComponentInParent<Rigidbody>();
+        Destroy(body != null ? body.gameObject : item.gameObject);
+        return true;
+    }
 
     public bool IsOperating => operating;
     public bool ShowsOperatePrompt => showPrompt;
@@ -79,11 +91,18 @@ public class CannonController : MonoBehaviour
             return false;
 
         rounds++;
+        GameFeedback.Notify("CANHÃO CARREGADO", rounds + " / " + capacity + " tiros prontos", GameFeedback.Cue.Deposit);
         return true;
     }
 
     void Update()
     {
+        if (GamePauseMenu.IsOpen)
+        {
+            showPrompt = false;
+            return;
+        }
+
         if (operating)
         {
             Aim();
@@ -94,7 +113,11 @@ public class CannonController : MonoBehaviour
                 Fire();
 
             if (ExitPressed())
+            {
+                if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                    GamePauseMenu.IgnoreEscapeThisFrame();
                 Exit();
+            }
 
             return;
         }
@@ -153,7 +176,6 @@ public class CannonController : MonoBehaviour
 
         if (playerMovement != null)
         {
-            playerMovement.IgnoreEscapeThisFrame();
             playerMovement.SetInputEnabled(true);
         }
 
@@ -178,8 +200,9 @@ public class CannonController : MonoBehaviour
             return;
 
         Vector2 delta = Mouse.current.delta.ReadValue();
-        yaw = Mathf.Clamp(yaw + delta.x * lookSensitivity, -yawLimit, yawLimit);
-        pitch = Mathf.Clamp(pitch - delta.y * lookSensitivity, minPitch, maxPitch);
+        float sensitivity = lookSensitivity * GamePreferences.Sensitivity;
+        yaw = Mathf.Clamp(yaw + delta.x * sensitivity, -yawLimit, yawLimit);
+        pitch = Mathf.Clamp(pitch - delta.y * sensitivity * (GamePreferences.InvertY ? -1f : 1f), minPitch, maxPitch);
 
         if (yawPivot != null)
             yawPivot.localRotation = Quaternion.Euler(0f, yaw, 0f);
@@ -189,13 +212,17 @@ public class CannonController : MonoBehaviour
 
     void Fire()
     {
+        if (Time.time < nextShotTime) return;
         if (rounds <= 0 || muzzle == null)
         {
             emptyUntil = Time.time + 1.4f;
+            GameFeedback.Notify("SEM MUNIÇÃO", "Saia do canhão e carregue um cartucho com o botão direito.", GameFeedback.Cue.Warning, true);
             return;
         }
 
         rounds--;
+        nextShotTime = Time.time + 0.28f;
+        GameFeedback.Play(GameFeedback.Cue.Shot);
 
         GameObject shot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         shot.name = "Projectile";
